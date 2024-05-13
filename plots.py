@@ -1,4 +1,5 @@
 import pandas as pd
+import datetime
 import matplotlib
 matplotlib.use('TkAgg')  # Oder ein anderes unterstütztes Backend
 import matplotlib.pyplot as plt
@@ -6,11 +7,11 @@ import os
 import numpy as np
 from config import *
 
-show_plots = True
-save_plots = False
+show_plots = False
+save_plots = True
 folder = 'PLOTS'
 
-def plot_verkehr(verkehrsdaten):
+def plot_verkehr(verkehrsdaten, Wochen_name):
     if not os.path.exists(folder):
         os.makedirs(folder)
     x_values = verkehrsdaten['x_values']
@@ -35,8 +36,7 @@ def plot_verkehr(verkehrsdaten):
     plt.ylabel('Anzahl der LKWs pro timestep')
     #plt.legend()
 
-    scenario_name = 'get_scenario_name()'
-    file_name = f"{scenario_name}_verkehr.png"
+    file_name = f"{Wochen_name}_verkehr.png"
     file_path = os.path.join(folder, file_name)
     plt.savefig(file_path)
 

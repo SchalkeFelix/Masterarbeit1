@@ -1,4 +1,5 @@
 import numpy as np
+import datetime
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 import math
@@ -13,9 +14,11 @@ csv_dateiname = 'zst5651_2021.csv'
 
 # Dateipfad zur CSV-Datei erstellen
 csv_dateipfad = os.path.join(os.getcwd(), csv_dateiname)
+x = start_date
+y= end_date
 
 
-def read_lkw_data(csv_dateipfad=csv_dateipfad):
+def read_lkw_data(csv_dateipfad=csv_dateipfad, start_date = x, end_date = y):
     # LKW-Daten aus csv einlesen und relevante Spalten summieren
     df = pd.read_csv(csv_dateipfad, delimiter=';')
     df = df[(df['Datum'] >= start_date) & (df['Datum'] <= end_date)]
@@ -31,6 +34,7 @@ def read_lkw_data(csv_dateipfad=csv_dateipfad):
     # Daten für Säulendiagramm generieren (Breite: 1h, Höhe: stundenscharfer durchschnittlicher LKW-Verkehr in LKW/h)
     x_values = np.arange(hours_difference)
     y_values = df['gesamt_LKW_R1'].to_numpy() * verkehrssteigerung
+    Maximum = max(y_values)
 
     # Polynomapproximation
     # lokale Extrema anpassen um Polynom-Approximation zu verbessern
@@ -80,7 +84,7 @@ def read_lkw_data(csv_dateipfad=csv_dateipfad):
 
     verkehrsdaten = {'x_values': x_values, 'y_values': y_values, 'x_continuous': x_continuous, 'y_continuous': y_continuous, 'differenzen': differenzen}
 
-    return lkws_in_timesteps, verkehrsdaten
+    return lkws_in_timesteps, verkehrsdaten, summe_lkws, Maximum
 
 def anpassen_liste(lst):
     if len(lst) < 3:
@@ -101,3 +105,61 @@ def anpassen_liste(lst):
     angepasste_liste.append(lst[-1])  # Das letzte Element bleibt unverändert
 
     return angepasste_liste
+
+def datumsliste_erstellen(jahr, erster_Montag):
+    jahr = jahr
+    erster_Montag = erster_Montag
+
+    montage_liste = []
+    sonntage_liste =[]
+
+    # Schleife für jeden Monat im Jahr
+    for monat in range(1, 13):  # von 1 bis 12 (einschließlich 12)
+        tage_im_monat = 31  # wir setzen angenommen erst einmal auf 31 tage
+        # je nach dem monat
+        if monat == 4 or monat == 6 or monat == 9 or monat == 11:
+            tage_im_monat = 30
+        elif monat == 2:
+            # februar hat verschiedene tage
+            if (jahr % 4 == 0 and jahr % 100 != 0) or (jahr % 400 == 0):
+                tage_im_monat = 29
+            else:
+                tage_im_monat = 28
+        # Schleife für jeden Tag im aktuellen Monat
+        for tag in range(1, tage_im_monat + 1):
+            # Formatierung des Datums im gewünschten Stil YYMMDD
+            datum_str = f"{str(jahr)[-2:]}{str(monat).zfill(2)}{str(tag).zfill(2)}"
+            datum_int = int(datum_str)
+            if datum_int >= erster_Montag:
+                # Prüfen, ob der Tag ein Montag ist (Wochentagnummer 0 für Montag)
+                if datetime.date(jahr, monat, tag).weekday() == 0:
+                    montage_liste.append(datum_int)
+                if datetime.date(jahr, monat, tag).weekday() == 6:
+                    sonntage_liste.append(datum_int)
+
+    print(montage_liste)
+    print(sonntage_liste)
+
+    if len(montage_liste) != len(sonntage_liste):
+        montage_liste.pop()
+
+    print(montage_liste)
+    print(sonntage_liste)
+    return montage_liste, sonntage_liste
+
+def wochenweise_iterieren(erster_Montag, jahr):
+    erster_Montag = erster_Montag
+    montage_liste, sonntage_liste = datumsliste_erstellen(jahr, erster_Montag)
+    k = 1
+    sum_lkw_list = []
+    max_pro_woche = []
+    wochenliste = []
+    for i, j in zip(montage_liste, sonntage_liste):
+        timesteps, verkehrsdaten, sum_lkws, Max_pro_woche = read_lkw_data(csv_dateipfad, i, j)
+        print('Woche' + str(k))
+
+        sum_lkw_list.append(sum_lkws)
+        max_pro_woche.append(Max_pro_woche)
+        wochenliste.append('Woche'+str(k))
+        k = k + 1
+    return sum_lkw_list, max_pro_woche, wochenliste
