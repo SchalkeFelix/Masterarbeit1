@@ -163,3 +163,88 @@ def wochenweise_iterieren(erster_Montag, jahr):
         wochenliste.append('Woche'+str(k))
         k = k + 1
     return sum_lkw_list, max_pro_woche, wochenliste
+
+
+import numpy as np
+
+def euclidean_distance(x1, x2):
+    return np.sqrt(np.sum((x1 - x2)**2))
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+def initialize_centroids(data, k):
+    # Zufällige Auswahl von k Datenpunkten als Startwerte für die Zentroide
+    centroids_indices = np.random.choice(len(data), k, replace=False)
+    centroids = data[centroids_indices]
+    return centroids
+
+def assign_to_clusters(data, centroids):
+    # Zuordnen jedes Datenpunkts zum nächsten Zentroiden
+    distances = np.zeros((len(data), len(centroids)))
+    for i, centroid in enumerate(centroids):
+        distances[:, i] = np.linalg.norm(data - centroid, axis=1)  # Euklidischer Abstand
+    cluster_labels = np.argmin(distances, axis=1)
+    return cluster_labels
+
+def update_centroids(data, cluster_labels, k):
+    # Aktualisieren der Zentroiden basierend auf den zugewiesenen Clustern
+    centroids = np.zeros((k, data.shape[1]))
+    for i in range(k):
+        cluster_points = data[cluster_labels == i]
+        if len(cluster_points) > 0:
+            centroids[i] = np.mean(cluster_points, axis=0)
+    return centroids
+
+def kmeans_clustering(dataframe, num_clusters=3, max_iterations=100):
+    # Daten aus dem DataFrame extrahieren
+    data = dataframe.values
+
+    # Initialisierung der Zentroiden
+    centroids = initialize_centroids(data, num_clusters)
+
+    for _ in range(max_iterations):
+        # Clusterzuordnungsschritt
+        cluster_labels = assign_to_clusters(data, centroids)
+
+        # Aktualisierung der Zentroiden
+        new_centroids = update_centroids(data, cluster_labels, num_clusters)
+
+        # Prüfen auf Konvergenz
+        if np.allclose(new_centroids, centroids):
+            break
+
+        centroids = new_centroids
+
+    # Visualisierung der Cluster
+    plot_clusters(data, centroids, cluster_labels)
+
+    # Rückgabe der zugewiesenen Cluster-Labels als Series
+    return pd.Series(cluster_labels, index=dataframe.index, name='ClusterLabel')
+
+def plot_clusters(data, centroids, cluster_labels):
+    # Datenpunkte und Zentroiden plotten
+    plt.figure(figsize=(8, 6))
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']  # Farben für die Cluster
+
+    # Datenpunkte plotten
+    for i in range(len(centroids)):
+        cluster_points = data[cluster_labels == i]
+        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], c=colors[i], label=f'Cluster {i+1}', alpha=0.6)
+
+    # Zentroiden plotten
+    plt.scatter(centroids[:, 0], centroids[:, 1], c='k', marker='x', s=100, label='Centroids')
+
+    plt.title('K-Means Clustering')
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+# Beispiel der Verwendung:
+# Angenommen 'df' ist das DataFrame, auf das die Clusteranalyse angewendet werden soll
+# 'num_clusters' ist optional und bestimmt die Anzahl der zu erstellenden Cluster
+# 'cluster_labels' enthält die zugeordneten Cluster-Labels für jede Zeile des DataFrames
+# cluster_labels = kmeans_clustering(df, num_clusters=4)

@@ -5,6 +5,7 @@
 import gurobipy as gp
 import datetime
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 from approximation import *
@@ -21,4 +22,8 @@ if __name__ == '__main__':
     data = {'max. Anzahl in Woche': max_pro_woche, 'Gesamtanzahl pro Woche': gesamte_anzahl_pro_woche}
     df = pd.DataFrame(data, index=wochenliste)
 
-    print(df)
+    plt.scatter(df['max. Anzahl in Woche'], df['Gesamtanzahl pro Woche'], color='blue', label='Datenpunkte')
+    #plt.show()
+
+    print(kmeans_clustering(df, 3, 100))
+
