@@ -7,7 +7,7 @@ import os
 import numpy as np
 from config import *
 
-show_plots = False
+show_plots = True
 save_plots = True
 folder = 'PLOTS'
 

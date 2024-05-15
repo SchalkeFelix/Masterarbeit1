@@ -5,12 +5,15 @@ import matplotlib.pyplot as plt
 import math
 import pandas as pd
 import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import date, timedelta
 from main import *
 from config import *
 import random
 
-# Dateiname der CSV-Datei
-csv_dateiname = 'zst5651_2021.csv'
 
 # Dateipfad zur CSV-Datei erstellen
 csv_dateipfad = os.path.join(os.getcwd(), csv_dateiname)
@@ -164,15 +167,8 @@ def wochenweise_iterieren(erster_Montag, jahr):
         k = k + 1
     return sum_lkw_list, max_pro_woche, wochenliste
 
-
-import numpy as np
-
 def euclidean_distance(x1, x2):
     return np.sqrt(np.sum((x1 - x2)**2))
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 
 def initialize_centroids(data, k):
     # Zufällige Auswahl von k Datenpunkten als Startwerte für die Zentroide
@@ -221,7 +217,7 @@ def kmeans_clustering(dataframe, num_clusters=3, max_iterations=100):
     plot_clusters(data, centroids, cluster_labels)
 
     # Rückgabe der zugewiesenen Cluster-Labels als Series
-    return pd.Series(cluster_labels, index=dataframe.index, name='ClusterLabel')
+    return cluster_labels, pd.Series(cluster_labels, index=dataframe.index, name='ClusterLabel')
 
 def plot_clusters(data, centroids, cluster_labels):
     # Datenpunkte und Zentroiden plotten
@@ -243,8 +239,80 @@ def plot_clusters(data, centroids, cluster_labels):
     plt.grid(True)
     plt.show()
 
-# Beispiel der Verwendung:
-# Angenommen 'df' ist das DataFrame, auf das die Clusteranalyse angewendet werden soll
-# 'num_clusters' ist optional und bestimmt die Anzahl der zu erstellenden Cluster
-# 'cluster_labels' enthält die zugeordneten Cluster-Labels für jede Zeile des DataFrames
-# cluster_labels = kmeans_clustering(df, num_clusters=4)
+def count_full_weeks(year):
+    # Ersten Montag des Jahres finden
+    first_day_of_year = date(year, 1, 1)
+    first_monday = first_day_of_year + timedelta(days=(7 - first_day_of_year.weekday()))
+
+    # Letzten Sonntag des Jahres finden
+    last_day_of_year = date(year, 12, 31)
+    last_sunday = last_day_of_year - timedelta(days=last_day_of_year.weekday() + 1)
+
+    # Anzahl der Tage zwischen dem ersten Montag und dem letzten Sonntag
+    days_between = (last_sunday - first_monday).days + 1
+
+    # Anzahl der vollen Wochen berechnen
+    full_weeks = days_between // 7
+
+    return first_monday, last_sunday, full_weeks
+
+def first_monday_of_year(year):
+    # Erstes Datum des Jahres
+    first_day_of_year = datetime.date(year, 1, 1)
+
+    # Tag der Woche für das erste Datum des Jahres (0 = Montag, 1 = Dienstag, ..., 6 = Sonntag)
+    first_day_of_week = first_day_of_year.weekday()
+
+    # Wenn der erste Tag des Jahres ein Montag ist (0), ist er der erste Montag des Jahres
+    if first_day_of_week == 0:
+        return 1  # Der erste Montag ist am 1. Tag des Jahres
+
+    # Ansonsten finden wir den Tag des ersten Montags des Jahres
+    # Berechnen, wie viele Tage bis zum nächsten Montag verbleiben
+    days_until_next_monday = (7 - first_day_of_week) % 7
+
+    # Tag des Jahres, an dem der erste Montag liegt
+    first_monday_day_of_year = days_until_next_monday + 1
+
+    return first_monday_day_of_year
+
+def days_until_end_of_year(year):
+    # Letztes Datum des Jahres
+    last_day_of_year = datetime.date(year, 12, 31)
+
+    # Tag der Woche für das letzte Datum des Jahres (0 = Montag, 1 = Dienstag, ..., 6 = Sonntag)
+    last_day_of_week = last_day_of_year.weekday()
+
+    # Tag des Jahres, an dem der letzte Sonntag liegt
+    last_sunday = (last_day_of_year - datetime.timedelta(days=last_day_of_week + 1)).timetuple().tm_yday
+
+    # Anzahl der Tage bis zum Jahresende (365 Tage für normale Jahre und 366 Tage für Schaltjahre)
+    days_until_end = 365 if year % 4 != 0 or (year % 100 == 0 and year % 400 != 0) else 366
+    days_until_end -= last_sunday  # Anzahl der Tage vom letzten Sonntag bis zum Jahresende
+
+    return days_until_end
+
+def gesamt_df_splitten(df, year):
+    mintuten_vor_erstem_Montag = (first_monday_of_year(year)-1)*24*60
+    minuten_nach_letztem_sonntag = days_until_end_of_year(year)*24*60
+    zeilen_drop_voher = int((mintuten_vor_erstem_Montag/5) - 1)
+    zeilen_drop_nachher = int(minuten_nach_letztem_sonntag/5)
+    df1 = df.drop(index=range(zeilen_drop_voher))
+    df2 = df1.drop(index=df.tail(zeilen_drop_nachher).index)
+    return df2
+
+
+def cluster_zuordnen(wochen_cluster):
+    # Finde die einzigartigen Cluster-IDs
+    einzigartige_cluster = set(wochen_cluster)
+
+    # Initialisiere leere Listen für jedes Cluster
+    cluster_listen = {cluster: [] for cluster in einzigartige_cluster}
+
+    # Fülle die Listen basierend auf der Cluster-Zuordnung
+    for woche, cluster in enumerate(wochen_cluster):
+        cluster_listen[cluster].append(woche + 1)  # Woche + 1 für 1-basierte Indexierung
+
+    return cluster_listen
+
+
