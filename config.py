@@ -6,7 +6,6 @@ anteil_bev = 0.8374
 tankwahrscheinlichkeit = 0.05
 verkehrssteigerung = 1.3355
 
-timedelta = 5  # time resolution in min
 max_akkustand = 80  # relative capacity when leaving the charging station
 
 # Definition der Raststätte

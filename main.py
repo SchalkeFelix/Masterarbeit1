@@ -16,6 +16,33 @@ from Initialiserung import *
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+
+    x, verkehrsdaten, y, z = read_lkw_data(csv_dateipfad)
+    lkw_werte = verkehrsdaten['y_continuous']
+
+    tage_im_jahr = days_in_year(jahr)
+
+    nummer_timestep = [x for x in range(0, int((tage_im_jahr * 24 * 60) / timedelta), 1)]
+    lkw_werte = pd.DataFrame(lkw_werte, index=nummer_timestep, columns=['LKW_in_timestep'])
+    alle_wochen = gesamt_df_splitten(lkw_werte, jahr)
+
+    minutenwerte = list(range(0, 7*24*60, timedelta))
+
+    output_folder = 'Wochen zu Clusterung'
+
+    # Erstelle den Ordner, falls er nicht existiert
+    os.makedirs(output_folder, exist_ok=True)
+
+    for i, part_df in enumerate(alle_wochen):
+        part_df.set_index(pd.Index(minutenwerte), inplace=True)
+        csv_filename = os.path.join(output_folder, f'woche_{i+1}.csv')
+        part_df.to_csv(csv_filename, index=False)
+        print(f"Woche {i + 1}:")
+        print(part_df)
+        print()
+
+    plot_verkehr(verkehrsdaten, 'Woche1')
+
     """
     gesamte_anzahl_pro_woche, max_pro_woche, wochenliste = wochenweise_iterieren(erster_montag, jahr)
 
@@ -30,15 +57,3 @@ if __name__ == '__main__':
 
     print(cluster_zuordnen(cluster_array))
     """
-    x, verkehrsdaten, y, z = read_lkw_data(csv_dateipfad)
-    lkw_werte = verkehrsdaten['y_continuous']
-
-    minutenwerte = [x for x in range(0, 525596, 5)]
-    print(minutenwerte)
-    print(len(minutenwerte))
-    print(len(lkw_werte))
-    print(lkw_werte)
-    lkw_werte = pd.DataFrame(lkw_werte, index=minutenwerte, columns=['LKW_in_timestep'])
-    dummy = gesamt_df_splitten(lkw_werte, jahr)
-
-    plot_verkehr(verkehrsdaten, 'Woche1')

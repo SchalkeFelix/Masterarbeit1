@@ -1,18 +1,18 @@
-import numpy as np
 import datetime
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 import math
 import pandas as pd
 import os
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import numpy as np
 from datetime import date, timedelta
 from main import *
 from config import *
+from Initialiserung import *
 import random
+
+
 
 
 # Dateipfad zur CSV-Datei erstellen
@@ -21,7 +21,7 @@ x = start_date
 y= end_date
 
 
-def read_lkw_data(csv_dateipfad=csv_dateipfad, start_date = x, end_date = y):
+def read_lkw_data(csv_dateipfad=csv_dateipfad):
     # LKW-Daten aus csv einlesen und relevante Spalten summieren
     df = pd.read_csv(csv_dateipfad, delimiter=';')
     df = df[(df['Datum'] >= start_date) & (df['Datum'] <= end_date)]
@@ -242,11 +242,11 @@ def plot_clusters(data, centroids, cluster_labels):
 def count_full_weeks(year):
     # Ersten Montag des Jahres finden
     first_day_of_year = date(year, 1, 1)
-    first_monday = first_day_of_year + timedelta(days=(7 - first_day_of_year.weekday()))
+    first_monday = first_day_of_year + datetime.timedelta(days=(7 - first_day_of_year.weekday()))
 
     # Letzten Sonntag des Jahres finden
     last_day_of_year = date(year, 12, 31)
-    last_sunday = last_day_of_year - timedelta(days=last_day_of_year.weekday() + 1)
+    last_sunday = last_day_of_year - datetime.timedelta(days=last_day_of_year.weekday() + 1)
 
     # Anzahl der Tage zwischen dem ersten Montag und dem letzten Sonntag
     days_between = (last_sunday - first_monday).days + 1
@@ -254,7 +254,7 @@ def count_full_weeks(year):
     # Anzahl der vollen Wochen berechnen
     full_weeks = days_between // 7
 
-    return first_monday, last_sunday, full_weeks
+    return full_weeks
 
 def first_monday_of_year(year):
     # Erstes Datum des Jahres
@@ -292,14 +292,29 @@ def days_until_end_of_year(year):
 
     return days_until_end
 
+def days_in_year(year):
+    if (year % 4 == 0 and year % 100 != 0):
+        return 366
+    else:
+        return 365
+
 def gesamt_df_splitten(df, year):
+
+    # nur volle Wochen betrachten, deswegen 'halbe' Wochen löschen
     mintuten_vor_erstem_Montag = (first_monday_of_year(year)-1)*24*60
     minuten_nach_letztem_sonntag = days_until_end_of_year(year)*24*60
-    zeilen_drop_voher = int((mintuten_vor_erstem_Montag/5) - 1)
+    zeilen_drop_voher = int((mintuten_vor_erstem_Montag/5))
     zeilen_drop_nachher = int(minuten_nach_letztem_sonntag/5)
-    df1 = df.drop(index=range(zeilen_drop_voher))
-    df2 = df1.drop(index=df.tail(zeilen_drop_nachher).index)
-    return df2
+    total_rows = df.shape[0]
+    rows_to_drop = list(range(zeilen_drop_voher)) + list(range(total_rows - zeilen_drop_nachher, total_rows))
+    df_cleaned = df.drop(rows_to_drop)
+
+    #in Gesamtwochen zerteilen
+    num_parts = count_full_weeks(year)
+    dfs = np.array_split(df_cleaned, num_parts)
+
+
+    return dfs
 
 
 def cluster_zuordnen(wochen_cluster):
