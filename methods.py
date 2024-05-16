@@ -316,7 +316,6 @@ def gesamt_df_splitten(df, year):
 
     return dfs
 
-
 def cluster_zuordnen(wochen_cluster):
     # Finde die einzigartigen Cluster-IDs
     einzigartige_cluster = set(wochen_cluster)
@@ -330,4 +329,20 @@ def cluster_zuordnen(wochen_cluster):
 
     return cluster_listen
 
+def beispielwochen_berechnen (geclusterte_wochen_dict):
+    for key in sorted(geclusterte_wochen_dict.keys()):
+        current_list = geclusterte_wochen_dict[key]
+        df_for_cluster = pd.DataFrame()
+        i = 0
+        for item in current_list:
+            file_path = r'C:\Users\felix\Masterarbeit1\Wochen zu Clusterung\woche_' + str(item) + '.csv'
 
+            # CSV-Datei einlesen
+            df = pd.read_csv(file_path)
+            df_for_cluster = df_for_cluster.add(df, fill_value=0)
+            i += 1
+            print(item)
+            print(file_path)
+
+        df_for_cluster = df_for_cluster.divide(i)
+        dummy = 0

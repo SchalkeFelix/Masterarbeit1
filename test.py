@@ -6,21 +6,20 @@ from datetime import date, timedelta
 import pandas as pd
 import os
 
-# Ordnerpfad, in dem die CSV-Dateien gespeichert werden sollen
-output_folder = 'output_dataframes'
 
-# Erstelle den Ordner, falls er nicht existiert
-os.makedirs(output_folder, exist_ok=True)
 
-for i in range(5):  # Beispiel-Schleife, um 5 DataFrames zu erstellen
-        # DataFrame erstellen (hier als Beispiel mit Dummy-Daten)
-        data = {'Column1': [i, i + 1, i + 2],
-                'Column2': ['A', 'B', 'C']}
+my_dict = {
+    0: [13, 14, 19, 29, 30, 31, 32, 33, 34, 35, 44],
+    1: [1, 51],
+    2: [2, 3, 4, 6, 7, 21, 22, 28, 36, 37, 38, 39, 40, 41, 42, 45],
+    3: [5, 8, 9, 10, 11, 12, 15, 16, 17, 18, 20, 23, 24, 25, 26, 27, 43, 46, 47, 48, 49, 50]
+}
 
-        df = pd.DataFrame(data)
-
-        # Dateipfad für die CSV-Datei
-        csv_filename = os.path.join(output_folder, f'dataframe_{i}.csv')
-
-        # DataFrame als CSV-Datei speichern
-        df.to_csv(csv_filename, index=False)
+# Durchlauf des Dictionaries in aufsteigender Reihenfolge der Schlüssel
+for key in sorted(my_dict.keys()):
+    # Zugriff auf die Liste für den aktuellen Schlüssel und Durchlaufen der Liste
+    current_list = my_dict[key]
+    print(f"Liste mit Index {key}:")
+    for item in current_list:
+        print(type(item))
+        print(item)
