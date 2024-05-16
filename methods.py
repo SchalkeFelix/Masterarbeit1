@@ -298,7 +298,7 @@ def days_in_year(year):
     else:
         return 365
 
-def gesamt_df_splitten(df, year):
+def gesamt_df_in_wochen_splitten(df, year):
 
     # nur volle Wochen betrachten, deswegen 'halbe' Wochen löschen
     mintuten_vor_erstem_Montag = (first_monday_of_year(year)-1)*24*60
@@ -316,6 +316,12 @@ def gesamt_df_splitten(df, year):
 
     return dfs
 
+def gesamt_df_in_tage_splitten(df, year):
+    num_parts = days_in_year(year)
+    dfs = np.array_split(df, num_parts)
+
+    return dfs
+
 def cluster_zuordnen(wochen_cluster):
     # Finde die einzigartigen Cluster-IDs
     einzigartige_cluster = set(wochen_cluster)
@@ -330,27 +336,47 @@ def cluster_zuordnen(wochen_cluster):
     return cluster_listen
 
 def beispielwochen_berechnen (geclusterte_wochen_dict):
-    data = pd.DataFrame()
-    for key in sorted(geclusterte_wochen_dict.keys()):
-        current_list = geclusterte_wochen_dict[key]
-        df_for_cluster = pd.DataFrame()
-        i = 0
-        for item in current_list:
-            file_path = r'C:\Users\felix\Masterarbeit1\Wochen zu Clusterung\woche_' + str(item) + '.csv'
+    if wochen_clustern:
+        data = pd.DataFrame()
+        for key in sorted(geclusterte_wochen_dict.keys()):
+            current_list = geclusterte_wochen_dict[key]
+            df_for_cluster = pd.DataFrame()
+            i = 0
+            for item in current_list:
+                file_path = r'C:\Users\felix\Masterarbeit1\Wochen zu Clusterung\woche_' + str(item) + '.csv'
 
-            # CSV-Datei einlesen
-            df = pd.read_csv(file_path)
-            df_for_cluster = df_for_cluster.add(df, fill_value=0)
-            i += 1
-            print(item)
-            print(file_path)
+                # CSV-Datei einlesen
+                df = pd.read_csv(file_path)
+                df_for_cluster = df_for_cluster.add(df, fill_value=0)
+                i += 1
 
-        df_for_cluster = df_for_cluster.divide(i)
-        df_for_cluster.rename(columns={'LKW_in_timestep': 'Cluster' + str(key)}, inplace=True)
-        data['Cluster'+str(key)] =df_for_cluster['Cluster'+str(key)]
-    minutenwerte = list(range(0, 7 * 24 * 60, timedelta))
-    data.set_index(pd.Index(minutenwerte), inplace=True)
-    dummy = 0
+            df_for_cluster = df_for_cluster.divide(i)
+            df_for_cluster.rename(columns={'LKW_in_timestep': 'Cluster' + str(key)}, inplace=True)
+            data['Cluster'+str(key)] =df_for_cluster['Cluster'+str(key)]
+
+        minutenwerte = list(range(0, 7 * 24 * 60, timedelta))
+        data.set_index(pd.Index(minutenwerte), inplace=True)
+    if tage_clustern:
+        data = pd.DataFrame()
+        for key in sorted(geclusterte_wochen_dict.keys()):
+            current_list = geclusterte_wochen_dict[key]
+            df_for_cluster = pd.DataFrame()
+            i = 0
+            for item in current_list:
+                file_path = r'C:\Users\felix\Masterarbeit1\Tage zu Clusterung\Tag_' + str(item) + '.csv'
+
+                # CSV-Datei einlesen
+                df = pd.read_csv(file_path)
+                df_for_cluster = df_for_cluster.add(df, fill_value=0)
+                i += 1
+
+            df_for_cluster = df_for_cluster.divide(i)
+            df_for_cluster.rename(columns={'LKW_in_timestep': 'Cluster' + str(key)}, inplace=True)
+            data['Cluster' + str(key)] = df_for_cluster['Cluster' + str(key)]
+
+        minutenwerte = list(range(0, 24 * 60, timedelta))
+        data.set_index(pd.Index(minutenwerte), inplace=True)
+
     return data
 
 def beispielwochen_plotten (beispielwochen, anzahl_cluster):
@@ -358,6 +384,7 @@ def beispielwochen_plotten (beispielwochen, anzahl_cluster):
     plt.figure(figsize=(10, 5))  # Größe des Diagramms festlegen
 
     for i in range(0, anzahl_cluster):
-        plt.plot(beispielwochen.index, beispielwochen['Cluster' + str(i)], label='Umsatz', color='blue', linestyle='solid')
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+        plt.plot(beispielwochen.index, beispielwochen['Cluster' + str(i)], label='Umsatz', color=colors[i], linestyle='solid')
 
     plt.show()
