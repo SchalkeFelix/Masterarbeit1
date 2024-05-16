@@ -57,8 +57,10 @@ if __name__ == '__main__':
     geclusterte_wochen = cluster_zuordnen(cluster_array)
 
     # Bespielwochen erstellen
-    DUMMY = 0
-    beispielwochen_berechnen(geclusterte_wochen)
+
+    beispielwochen = beispielwochen_berechnen(geclusterte_wochen)
+    beispielwochen_plotten(beispielwochen, anzahl_cluster)
+
     ### CLUSTERING ENDE ###
 
 

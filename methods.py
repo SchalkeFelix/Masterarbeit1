@@ -330,6 +330,7 @@ def cluster_zuordnen(wochen_cluster):
     return cluster_listen
 
 def beispielwochen_berechnen (geclusterte_wochen_dict):
+    data = pd.DataFrame()
     for key in sorted(geclusterte_wochen_dict.keys()):
         current_list = geclusterte_wochen_dict[key]
         df_for_cluster = pd.DataFrame()
@@ -345,4 +346,18 @@ def beispielwochen_berechnen (geclusterte_wochen_dict):
             print(file_path)
 
         df_for_cluster = df_for_cluster.divide(i)
-        dummy = 0
+        df_for_cluster.rename(columns={'LKW_in_timestep': 'Cluster' + str(key)}, inplace=True)
+        data['Cluster'+str(key)] =df_for_cluster['Cluster'+str(key)]
+    minutenwerte = list(range(0, 7 * 24 * 60, timedelta))
+    data.set_index(pd.Index(minutenwerte), inplace=True)
+    dummy = 0
+    return data
+
+def beispielwochen_plotten (beispielwochen, anzahl_cluster):
+
+    plt.figure(figsize=(10, 5))  # Größe des Diagramms festlegen
+
+    for i in range(0, anzahl_cluster):
+        plt.plot(beispielwochen.index, beispielwochen['Cluster' + str(i)], label='Umsatz', color='blue', linestyle='solid')
+
+    plt.show()

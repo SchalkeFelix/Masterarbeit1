@@ -5,21 +5,25 @@ from methods import *
 from datetime import date, timedelta
 import pandas as pd
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
-
-
-my_dict = {
-    0: [13, 14, 19, 29, 30, 31, 32, 33, 34, 35, 44],
-    1: [1, 51],
-    2: [2, 3, 4, 6, 7, 21, 22, 28, 36, 37, 38, 39, 40, 41, 42, 45],
-    3: [5, 8, 9, 10, 11, 12, 15, 16, 17, 18, 20, 23, 24, 25, 26, 27, 43, 46, 47, 48, 49, 50]
+# Beispiel DataFrame
+data = {
+    'Jahr': [2010, 2011, 2012, 2013, 2014],
+    'Umsatz': [50000, 60000, 75000, 90000, 100000],
+    'Gewinn': [2000, 4000, 6000, 8000, 10000]
 }
 
-# Durchlauf des Dictionaries in aufsteigender Reihenfolge der Schlüssel
-for key in sorted(my_dict.keys()):
-    # Zugriff auf die Liste für den aktuellen Schlüssel und Durchlaufen der Liste
-    current_list = my_dict[key]
-    print(f"Liste mit Index {key}:")
-    for item in current_list:
-        print(type(item))
-        print(item)
+df = pd.DataFrame(data)
+df.set_index('Jahr', inplace=True)  # Setze das Jahr als Index
+print(df)
+
+# Liniendiagramm erstellen
+plt.figure(figsize=(10, 5))  # Größe des Diagramms festlegen
+
+# Plotten der Linien für 'Umsatz' und 'Gewinn'
+plt.plot(df.index, df['Umsatz'], marker='o', label='Umsatz', color='blue', linestyle='solid')
+plt.plot(df.index, df['Gewinn'], marker='o', label='Gewinn', color='blue', linestyle='solid')
+
+plt.show()
