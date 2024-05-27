@@ -2,7 +2,6 @@ import datetime
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 import math
-import pandas as pd
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,16 +9,16 @@ from datetime import date, timedelta
 from main import *
 from config import *
 from Initialiserung import *
+import pandas as pd
 import random
+import pandas as pd
+import math
 
 
 
 
 # Dateipfad zur CSV-Datei erstellen
 csv_dateipfad = os.path.join(os.getcwd(), csv_dateiname)
-x = start_date
-y= end_date
-
 
 def read_lkw_data(csv_dateipfad=csv_dateipfad):
     # LKW-Daten aus csv einlesen und relevante Spalten summieren
@@ -193,16 +192,18 @@ def update_centroids(data, cluster_labels, k):
             centroids[i] = np.mean(cluster_points, axis=0)
     return centroids
 
-def kmeans_clustering(dataframe, num_clusters=3, max_iterations=100):
+def kmeans_clustering(dataframe, num_clusters, max_iterations= 1000):
     # Daten aus dem DataFrame extrahieren
     data = dataframe.values
 
     # Initialisierung der Zentroiden
     centroids = initialize_centroids(data, num_clusters)
 
+
     for _ in range(max_iterations):
         # Clusterzuordnungsschritt
         cluster_labels = assign_to_clusters(data, centroids)
+        # plot_clusters(data, centroids, cluster_labels)  # nur an machen für Präsi, danach löschen
 
         # Aktualisierung der Zentroiden
         new_centroids = update_centroids(data, cluster_labels, num_clusters)
@@ -233,8 +234,8 @@ def plot_clusters(data, centroids, cluster_labels):
     plt.scatter(centroids[:, 0], centroids[:, 1], c='k', marker='x', s=100, label='Centroids')
 
     plt.title('K-Means Clustering')
-    plt.xlabel('Feature 1')
-    plt.ylabel('Feature 2')
+    plt.xlabel('max. Wert')
+    plt.ylabel('Gesamtmenge')
     plt.legend()
     plt.grid(True)
     plt.show()
@@ -388,3 +389,92 @@ def beispielwochen_plotten (beispielwochen, anzahl_cluster):
         plt.plot(beispielwochen.index, beispielwochen['Cluster' + str(i)], label='Umsatz', color=colors[i], linestyle='solid')
 
     plt.show()
+
+def read_excel_to_df (datei_name, mappe_name, spalten_name):
+    df = pd.read_excel(datei_name, sheet_name=mappe_name, usecols=spalten_name)
+    return df
+
+def multiply_probability_with_trafficdays (beispieltage, ladewahrscheinlichkeiten):
+    # Gemeinsame Indizes bestimmen
+    gemeinsame_indices = ladewahrscheinlichkeiten.index.intersection(beispieltage.index)
+
+    # Ergebnis-DataFrame initialisieren
+    result = pd.DataFrame(index=gemeinsame_indices)
+
+    df2_gemeinsam = ladewahrscheinlichkeiten.loc[gemeinsame_indices]
+
+
+    dummy = 0
+
+    dummy = 0
+    # Durch alle Spalten iterieren und multiplizieren
+    for column in beispieltage.columns:
+        # DataFrames auf gemeinsame Indizes und aktuelle Spalte beschränken
+        df1_gemeinsam1 = beispieltage.loc[gemeinsame_indices, column]
+        df1_gemeinsam = df1_gemeinsam1.to_frame()
+        df2_gemeinsam.columns = [column]
+        DUMMY = 0
+        # Multiplikation der Werte
+
+        x = df1_gemeinsam.mul(df2_gemeinsam, axis=1)
+        result[column] = x
+        dummy = 0
+
+    return result
+
+def rounded_dataframe_to_integer_trucks(df):
+    # Erstelle ein Ergebnis-DataFrame mit den gleichen Indizes wie df
+    result_df = pd.DataFrame(index=df.index)
+
+    # Durchlaufe jede Spalte des DataFrames
+    for col in df.columns:
+        i = 0  # Initialisiere den Wert i für jede Spalte
+        for idx in df.index:  # Durchlaufe jeden Index der Spalte
+            i += df.loc[idx, col]  # Addiere den Wert des aktuellen Index
+            rounded_i = math.floor(i)  # Runde den kumulativen Wert ab
+            result_df.loc[idx, col] = int(rounded_i)  # Speichere das gerundete Ergebnis im Ergebnis-DataFrame
+            i -= rounded_i  # Ziehe den gerundeten Wert von i ab
+    result_df = result_df.astype(int)
+    return result_df
+
+def generate_entry(df_name):
+    # Eintrag 1: Abhängig vom Namen des DataFrames
+    if "hpc" in df_name:
+        entry1 = 'HPC'
+    elif "mcs" in df_name:
+        entry1 = 'MCS'
+    elif "ncs" in df_name:
+        entry1 = 'NCS'
+    else:
+        entry1 = "Fehler"
+
+    # Eintrag 2: Eine zufällige Zahl zwischen 0,05 und 0,3
+    entry2 = round(random.uniform(0.05, 0.3), 3)
+
+    # Eintrag 3: Eine Zahl entweder 252, 504 oder 756 mit Wahrscheinlichkeiten 0,4, 0,2, 0,4
+    entry3 = random.choices([252, 504, 756], [0.4, 0.2, 0.4])[0]
+
+    return [entry1, entry2, entry3]
+
+
+def generate_lkw_in_array(dataframes):
+    # Initialisieren des resultierenden DataFrames mit der gleichen Struktur wie die Eingabedaten
+    result_dict = {col: [] for col in dataframes[0].columns}
+
+    # Durchlaufen der Zeilen
+    num_rows = max(df.shape[0] for df in dataframes)
+    for row_idx in range(0, timedelta * num_rows, timedelta):
+        row_data = {col: [] for col in dataframes[0].columns}
+        for df in dataframes:
+            if row_idx < df.shape[0]*timedelta:
+                for col in df.columns:
+                    value = df.at[row_idx, col]
+                    arrays = [generate_entry(df.name) for _ in range(value)]  # Hier wird df.name verwendet
+                    row_data[col].extend(arrays)
+        for col in row_data:
+            result_dict[col].append(row_data[col])
+        print(row_idx)
+
+    # Erstellen eines DataFrames aus dem Dictionary der Arrays
+    result_df = pd.DataFrame(result_dict)
+    return result_df

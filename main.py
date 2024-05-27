@@ -1,7 +1,3 @@
-# This is a sample Python script.
-
-# Press Umschalt+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import gurobipy as gp
 import datetime
 
@@ -56,7 +52,6 @@ if __name__ == '__main__':
 
 
     elif tage_clustern:
-
         # Verkehrsdaten aufrufen
         x, verkehrsdaten, y, z = read_lkw_data(csv_dateipfad)
         lkw_werte = verkehrsdaten['y_continuous']
@@ -92,7 +87,30 @@ if __name__ == '__main__':
 
     else:
         print ('Inititalisierung des Clusterns ist falsch!')
-    ### CLUSTERING ENDE ###
 
+    #### CLUSTERING ENDE ####
 
+    #### INPUT-DATEN ERZEUGEN ####
 
+    ladewahrscheinlichkeiten_hpc = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'H')
+    ladewahrscheinlichkeiten_mcs = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'I')
+    ladewahrscheinlichkeiten_ncs = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overnight stops', 'G')
+
+    if tage_clustern:
+
+        # LKW-Daten mit Wahrschinlichkeiten multiplizieren
+        lkw_hpc = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_hpc)
+        lkw_mcs = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_mcs)
+        lkw_ncs = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_ncs)
+
+        # auf ganze LKW runden
+        lkw_hpc = rounded_dataframe_to_integer_trucks(lkw_hpc)
+        lkw_mcs = rounded_dataframe_to_integer_trucks(lkw_mcs)
+        lkw_ncs = rounded_dataframe_to_integer_trucks(lkw_ncs)
+
+        dataframes = [lkw_hpc, lkw_mcs, lkw_ncs]
+        lkw_hpc.name = "hpc"
+        lkw_mcs.name = "mcs"
+        lkw_ncs.name = "ncs"
+        alle_lkw = generate_lkw_in_array(dataframes)
+        dummy = 0
