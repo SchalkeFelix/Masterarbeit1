@@ -403,22 +403,16 @@ def multiply_probability_with_trafficdays (beispieltage, ladewahrscheinlichkeite
 
     df2_gemeinsam = ladewahrscheinlichkeiten.loc[gemeinsame_indices]
 
-
-    dummy = 0
-
-    dummy = 0
     # Durch alle Spalten iterieren und multiplizieren
     for column in beispieltage.columns:
         # DataFrames auf gemeinsame Indizes und aktuelle Spalte beschränken
         df1_gemeinsam1 = beispieltage.loc[gemeinsame_indices, column]
         df1_gemeinsam = df1_gemeinsam1.to_frame()
         df2_gemeinsam.columns = [column]
-        DUMMY = 0
-        # Multiplikation der Werte
 
+        # Multiplikation der Werte
         x = df1_gemeinsam.mul(df2_gemeinsam, axis=1)
         result[column] = x
-        dummy = 0
 
     return result
 
@@ -449,13 +443,12 @@ def generate_entry(df_name):
         entry1 = "Fehler"
 
     # Eintrag 2: Eine zufällige Zahl zwischen 0,05 und 0,3
-    entry2 = round(random.uniform(0.05, 0.3), 3)
+    entry2 = round(random.uniform(untere_grenze_soc, obere_grenze_soc), 3)
 
     # Eintrag 3: Eine Zahl entweder 252, 504 oder 756 mit Wahrscheinlichkeiten 0,4, 0,2, 0,4
-    entry3 = random.choices([252, 504, 756], [0.4, 0.2, 0.4])[0]
+    entry3 = random.choices(batterie_kapazitäten, wahrscheinlichkeiten_batterien)[0]
 
     return [entry1, entry2, entry3]
-
 
 def generate_lkw_in_array(dataframes):
     # Initialisieren des resultierenden DataFrames mit der gleichen Struktur wie die Eingabedaten
