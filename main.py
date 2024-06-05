@@ -94,6 +94,7 @@ if __name__ == '__main__':
     else:
         beispieltage = pd.read_excel('beispieltage.xlsx', index_col=0)
         beispielwochen = pd.read_excel('beispielwochen.xlsx', index_col=0)
+        beispielwochen_plotten(beispieltage, anzahl_cluster_tage)
         dummy = 0
 
     #### CLUSTERING ENDE ####
@@ -126,6 +127,9 @@ if __name__ == '__main__':
         alle_lkw = generate_lkw_in_array(dataframes)
         index_list = lkw_hpc.index.tolist()
         alle_lkw.index = index_list
+        beispielwochen_plotten(lkw_hpc, anzahl_cluster_tage)
+        beispielwochen_plotten(lkw_mcs, anzahl_cluster_tage)
+        beispielwochen_plotten(lkw_ncs, anzahl_cluster_tage)
 
 
     if wochen_clustern:
