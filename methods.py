@@ -435,20 +435,47 @@ def generate_entry(df_name):
     # Eintrag 1: Abhängig vom Namen des DataFrames
     if "hpc" in df_name:
         entry1 = 'HPC'
+        ladeleistung = ladeleistung_liste[1]
+        pausenzeit = 45
     elif "mcs" in df_name:
         entry1 = 'MCS'
+        ladeleistung = ladeleistung_liste[2]
+        pausenzeit = 45
     elif "ncs" in df_name:
         entry1 = 'NCS'
+        ladeleistung = ladeleistung_liste[0]
+        pausenzeit = 480
     else:
         entry1 = "Fehler"
 
     # Eintrag 2: Eine zufällige Zahl zwischen 0,05 und 0,3
-    entry2 = round(random.uniform(untere_grenze_soc, obere_grenze_soc), 3)
+    entry2 = round(random.uniform(untere_grenze_soc, obere_grenze_soc), 2)
 
     # Eintrag 3: Eine Zahl entweder 252, 504 oder 756 mit Wahrscheinlichkeiten 0,4, 0,2, 0,4
     entry3 = random.choices(batterie_kapazitäten, wahrscheinlichkeiten_batterien)[0]
 
-    return [entry1, entry2, entry3]
+    # Eintrag 4: geschätzte Ladezeit
+    df_ladekurve = ladekurve()
+    spaltenname = entry3
+    soc = entry2
+    ladezeit = 0
+
+    while soc <= 0.8 :
+        relative_geladene_energie = (df_ladekurve[spaltenname][round(soc*100, 0)] * ladeleistung * (timedelta/60)) / entry3
+        soc += relative_geladene_energie
+        ladezeit += timedelta
+
+    if ladezeit <= pausenzeit:
+        entry4 = pausenzeit
+        entry5 = 'Optimierungspotential'
+    elif ladezeit > pausenzeit:
+        entry4 = ladezeit
+        entry5 = 'kein Optimierungspotential'
+
+    dummy = 0
+
+
+    return [entry1, entry2, entry3, entry4, entry5]
 
 def generate_lkw_in_array(dataframes):
     # Initialisieren des resultierenden DataFrames mit der gleichen Struktur wie die Eingabedaten
@@ -466,8 +493,14 @@ def generate_lkw_in_array(dataframes):
                     row_data[col].extend(arrays)
         for col in row_data:
             result_dict[col].append(row_data[col])
-        print(row_idx)
+        print('timestep: ' + str(row_idx))
 
     # Erstellen eines DataFrames aus dem Dictionary der Arrays
     result_df = pd.DataFrame(result_dict)
     return result_df
+
+def ladekurve ():
+    file_path = 'Ladekurven.xlsx'
+    df_ladekurven = pd.read_excel(file_path)
+
+    return df_ladekurven

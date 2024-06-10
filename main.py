@@ -155,10 +155,13 @@ if __name__ == '__main__':
         lkw_mcs_woche.name = "mcs"
         lkw_ncs_woche.name = "ncs"
 
-        # Output hier ist ein Dataframe mit Arrays für jeden LKW, Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität]
+        # Output hier ist ein Dataframe mit Arrays für jeden LKW
+        # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
         alle_lkw = generate_lkw_in_array(dataframes)
         index_list = lkw_hpc_woche.index.tolist()
         alle_lkw.index = index_list
+        alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
+        dummy= 0
 
 
 
