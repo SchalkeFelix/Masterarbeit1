@@ -2,6 +2,7 @@ import gurobipy as gp
 from gurobipy import GRB
 from Initialiserung import*
 from methods import*
+import ast
 '''
 # Erstellen des Modells
 model = gp.Model("Optimierung Anzahl Ladesäulen")
@@ -61,10 +62,10 @@ for t in range(1, num_arrays):
 
     dummy = 0
 '''
-
+'''
 import pandas as pd
 import numpy as np
-
+import random
 # Number of rows
 n_rows = 100
 
@@ -80,6 +81,7 @@ third_entry_values = [252, 504, 756]
 # Generate the DataFrame
 data = []
 for _ in range(n_rows):
+    x= random.random()
     row = [
         np.array([
             np.random.choice(first_entry_values),        # First entry
@@ -91,13 +93,14 @@ for _ in range(n_rows):
     ]
     data.append(row)
 
+
 # Create the DataFrame
 df = pd.DataFrame(data, index=indices, columns=['Data'])
 df.head()
 
 # Extract the fourth entry and compute the new index value
 fourth_entries = df['Data'].apply(lambda x: int(x[3]))
-new_indices = df.index + fourth_entries
+new_indices = df.index + fourth_entries-timedelta
 
 # Create a new DataFrame with the same indices as the original
 new_df = pd.DataFrame(0, index=indices, columns=[f'Array_{i}' for i in range(n_rows)])
@@ -109,3 +112,30 @@ for i, idx in enumerate(df.index):
 
 print("\nNew DataFrame:")
 print(new_df.head(20))
+'''
+
+df = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+
+
+new_df = pd.DataFrame(index=df.index)
+z = 0
+
+for i in range(0, len(df)*timedelta, timedelta):
+    x = df['Cluster0'][i]
+    data_list = ast.literal_eval(x)
+    print(i)
+    for j in data_list:
+        z+=1
+        y = j[3]
+        col_name = 'col'+str(z)  # Create a unique column name
+
+        # Initialize the new column with zeros
+        new_df[col_name] = 0
+
+        for k in range(i, i+y, timedelta):
+            new_df.at[k, col_name] = 1
+
+dummy = 0
+
+
+

@@ -124,9 +124,12 @@ if __name__ == '__main__':
         lkw_ncs.name = "ncs"
 
         # Output hier ist ein Dataframe mit Arrays für jeden LKW, Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität]
-        alle_lkw = generate_lkw_in_array(dataframes)
+        ladekurve = ladekurve()
+        alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
         index_list = lkw_hpc.index.tolist()
         alle_lkw.index = index_list
+        alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
+        dummy = 0
         beispielwochen_plotten(lkw_hpc, anzahl_cluster_tage)
         beispielwochen_plotten(lkw_mcs, anzahl_cluster_tage)
         beispielwochen_plotten(lkw_ncs, anzahl_cluster_tage)
@@ -157,7 +160,8 @@ if __name__ == '__main__':
 
         # Output hier ist ein Dataframe mit Arrays für jeden LKW
         # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
-        alle_lkw = generate_lkw_in_array(dataframes)
+        ladekurve = ladekurve()
+        alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
         index_list = lkw_hpc_woche.index.tolist()
         alle_lkw.index = index_list
         alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)

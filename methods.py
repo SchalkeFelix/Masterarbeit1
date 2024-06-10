@@ -431,7 +431,7 @@ def rounded_dataframe_to_integer_trucks(df):
     result_df = result_df.astype(int)
     return result_df
 
-def generate_entry(df_name):
+def generate_entry(df_name, ladekurve):
     # Eintrag 1: Abhängig vom Namen des DataFrames
     if "hpc" in df_name:
         entry1 = 'HPC'
@@ -455,10 +455,11 @@ def generate_entry(df_name):
     entry3 = random.choices(batterie_kapazitäten, wahrscheinlichkeiten_batterien)[0]
 
     # Eintrag 4: geschätzte Ladezeit
-    df_ladekurve = ladekurve()
+    df_ladekurve = ladekurve
     spaltenname = entry3
     soc = entry2
     ladezeit = 0
+
 
     while soc <= 0.8 :
         relative_geladene_energie = (df_ladekurve[spaltenname][round(soc*100, 0)] * ladeleistung * (timedelta/60)) / entry3
@@ -473,11 +474,15 @@ def generate_entry(df_name):
         entry5 = 'kein Optimierungspotential'
 
     dummy = 0
+    '''
+    entry4 = 20
+    entry5 = 'Schalke'
+    '''
 
 
     return [entry1, entry2, entry3, entry4, entry5]
 
-def generate_lkw_in_array(dataframes):
+def generate_lkw_in_array(dataframes, ladekurve):
     # Initialisieren des resultierenden DataFrames mit der gleichen Struktur wie die Eingabedaten
     result_dict = {col: [] for col in dataframes[0].columns}
 
@@ -489,7 +494,7 @@ def generate_lkw_in_array(dataframes):
             if row_idx < df.shape[0]*timedelta:
                 for col in df.columns:
                     value = df.at[row_idx, col]
-                    arrays = [generate_entry(df.name) for _ in range(value)]  # Hier wird df.name verwendet
+                    arrays = [generate_entry(df.name, ladekurve) for _ in range(value)]  # Hier wird df.name verwendet
                     row_data[col].extend(arrays)
         for col in row_data:
             result_dict[col].append(row_data[col])
