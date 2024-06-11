@@ -123,7 +123,8 @@ if __name__ == '__main__':
         lkw_mcs.name = "mcs"
         lkw_ncs.name = "ncs"
 
-        # Output hier ist ein Dataframe mit Arrays für jeden LKW, Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität]
+        # Output hier ist ein Dataframe mit Arrays für jeden LKW
+        # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
         ladekurve = ladekurve()
         alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
         index_list = lkw_hpc.index.tolist()

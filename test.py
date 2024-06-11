@@ -113,28 +113,65 @@ for i, idx in enumerate(df.index):
 print("\nNew DataFrame:")
 print(new_df.head(20))
 '''
+import warnings
 
+# Suppress specific warnings
+warnings.filterwarnings("ignore", category=pd.errors.PerformanceWarning)
+print("Code executed without printing the PerformanceWarning")
 df = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+anzahl_spalten = df.shape[1]
 
+# Define the folder path where the files will be saved
+folder_path = 'Belegungspläne'
 
-new_df = pd.DataFrame(index=df.index)
-z = 0
+# Create the folder if it does not exist
+os.makedirs(folder_path, exist_ok=True)
 
-for i in range(0, len(df)*timedelta, timedelta):
-    x = df['Cluster0'][i]
-    data_list = ast.literal_eval(x)
-    print(i)
-    for j in data_list:
-        z+=1
-        y = j[3]
-        col_name = 'col'+str(z)  # Create a unique column name
+for l in range(0, anzahl_spalten):
 
-        # Initialize the new column with zeros
-        new_df[col_name] = 0
+    new_df_HPC = pd.DataFrame(index=df.index)
+    new_df_MCS = pd.DataFrame(index=df.index)
+    new_df_NCS = pd.DataFrame(index=df.index)
+    z = 0
 
-        for k in range(i, i+y, timedelta):
-            new_df.at[k, col_name] = 1
+    for i in range(0, len(df)*timedelta, timedelta):
+        x = df['Cluster'+str(l)][i]
+        data_list = ast.literal_eval(x)
+        print(i)
+        for j in data_list:
+            z+=1
+            y = j[3]
+            q = j[0]
+            col_name = 'col'+str(z)  # Create a unique column name
 
+            if q == 'HPC':
+                # Initialize the new column with zeros
+                new_df_HPC[col_name] = 0
+
+                for k in range(i, i+y, timedelta):
+                    new_df_HPC.at[k, col_name] = 1
+
+            if q == 'MCS':
+                # Initialize the new column with zeros
+                new_df_MCS[col_name] = 0
+
+                for k in range(i, i+y, timedelta):
+                    new_df_MCS.at[k, col_name] = 1
+            if q == 'NCS':
+                # Initialize the new column with zeros
+                new_df_NCS[col_name] = 0
+
+                for k in range(i, i+y, timedelta):
+                    new_df_NCS.at[k, col_name] = 1
+
+    dummy = 0
+    new_df_HPC.to_excel(os.path.join(folder_path, 'Belegungsplan_HPC_Cluster' + str(l) + '.xlsx'), index=True)
+    print('HPC gespeichert')
+    new_df_MCS.to_excel(os.path.join(folder_path, 'Belegungsplan_MCS_Cluster' + str(l) + '.xlsx'), index=True)
+    print('MCS gespeichert')
+    new_df_NCS.to_excel(os.path.join(folder_path, 'Belegungsplan_NCS_Cluster' + str(l) + '.xlsx'), index=True)
+    print('NCS gespeichert')
+    print('Cluster'+str(l)+' gespeichert!')
 dummy = 0
 
 
