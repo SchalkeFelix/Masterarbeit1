@@ -113,12 +113,13 @@ for i, idx in enumerate(df.index):
 print("\nNew DataFrame:")
 print(new_df.head(20))
 '''
+
+"""
 import warnings
 
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=pd.errors.PerformanceWarning)
 print("Code executed without printing the PerformanceWarning")
-df = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
 anzahl_spalten = df.shape[1]
 
 # Define the folder path where the files will be saved
@@ -175,4 +176,73 @@ for l in range(0, anzahl_spalten):
 dummy = 0
 
 
+import pandas as pd
+import pulp
+
+dummy = 0
+HPC_Cluster0 = pd.read_excel('Belegungspläne/Belegungsplan_HPC_Cluster0.xlsx', index_col=0)
+max_index_to_keep = 1435
+
+# Index-Werte ermitteln, die kleiner oder gleich max_index_to_keep sind
+indices_to_keep = HPC_Cluster0.index[HPC_Cluster0.index <= max_index_to_keep]
+dummy = 0
+
+df = HPC_Cluster0.loc[indices_to_keep]
+dummy = 0
+
+# Anzahl der LKWs und Zeitschritte
+num_lkw = df.shape[1]
+num_steps = df.shape[0]
+
+# Setze das Optimierungsproblem
+prob = pulp.LpProblem("Ladesaeulen_Optimierung", pulp.LpMinimize)
+
+# Variablen: y[j] ist 1, wenn Ladesäule j genutzt wird
+y = pulp.LpVariable.dicts("y", range(num_lkw), 0, 1, pulp.LpBinary)
+
+# Variablen: x[i][j] ist 1, wenn LKW i an Ladesäule j geladen wird
+x = pulp.LpVariable.dicts("x", [(i, j) for i in range(num_lkw) for j in range(num_lkw)], 0, 1, pulp.LpBinary)
+
+# Ziel: Minimierung der Anzahl der genutzten Ladesäulen
+prob += pulp.lpSum(y[j] for j in range(num_lkw))
+
+# Nebenbedingungen: Jeder LKW darf an höchstens einer Ladesäule geladen werden
+for i in range(num_lkw):
+    prob += pulp.lpSum(x[i, j] for j in range(num_lkw)) <= 1
+
+# Nebenbedingungen: Keine Überschneidung der Ladezeiten an einer Ladesäule
+for j in range(num_lkw):
+    for t in range(num_steps):
+        prob += pulp.lpSum(x[i, j] * df.iloc[t, i] for i in range(num_lkw)) <= y[j]
+
+# Nebenbedingungen: Mindestens 80% der LKWs müssen geladen werden
+prob += pulp.lpSum(x[i, j] for i in range(num_lkw) for j in range(num_lkw)) >= 0.8 * num_lkw
+
+# Ladesäulen können nur genutzt werden, wenn ein LKW daran geladen wird
+for j in range(num_lkw):
+    for i in range(num_lkw):
+        prob += x[i, j] <= y[j]
+
+# Problem lösen
+prob.solve()
+
+# Ergebnis extrahieren
+solution = {}
+for i in range(num_lkw):
+    for j in range(num_lkw):
+        if pulp.value(x[i, j]) == 1:
+            if j in solution:
+                solution[j].append(i)
+            else:
+                solution[j] = [i]
+
+# Ausgabe der Lösung
+used_stations = sorted(k for k in solution.keys() if pulp.value(y[k]) == 1)
+print("Anzahl benötigter Ladesäulen:", len(used_stations))
+print("Zuordnung der LKWs zu den Ladesäulen:")
+for new_idx, old_idx in enumerate(used_stations):
+    lkw_list = solution[old_idx]
+    lkw_str = ', '.join('LKW' + str(i + 1) for i in lkw_list)
+    print(f"Ladesäule {new_idx + 1}: {lkw_str}")
+"""
 

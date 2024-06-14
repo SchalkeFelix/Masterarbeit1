@@ -1,6 +1,5 @@
 import datetime
 from scipy.interpolate import CubicSpline
-import matplotlib.pyplot as plt
 import math
 import os
 import numpy as np
@@ -9,10 +8,11 @@ from datetime import date, timedelta
 from main import *
 from config import *
 from Initialiserung import *
-import pandas as pd
 import random
 import pandas as pd
 import math
+import warnings
+import ast
 
 
 
@@ -474,10 +474,7 @@ def generate_entry(df_name, ladekurve):
         entry5 = 'kein Optimierungspotential'
 
     dummy = 0
-    '''
-    entry4 = 20
-    entry5 = 'Schalke'
-    '''
+
 
 
     return [entry1, entry2, entry3, entry4, entry5]
@@ -509,3 +506,64 @@ def ladekurve ():
     df_ladekurven = pd.read_excel(file_path)
 
     return df_ladekurven
+
+def belegunspläne_erstellen(alle_lkw):
+
+    df = alle_lkw
+
+    # Suppress specific warnings
+    warnings.filterwarnings("ignore", category=pd.errors.PerformanceWarning)
+    print("Code executed without printing the PerformanceWarning")
+    anzahl_spalten = df.shape[1]
+
+    # Define the folder path where the files will be saved
+    folder_path = 'Belegungspläne'
+
+    # Create the folder if it does not exist
+    os.makedirs(folder_path, exist_ok=True)
+
+    for l in range(0, anzahl_spalten):
+
+        new_df_HPC = pd.DataFrame(index=df.index)
+        new_df_MCS = pd.DataFrame(index=df.index)
+        new_df_NCS = pd.DataFrame(index=df.index)
+        z = 0
+
+        for i in range(0, len(df) * timedelta, timedelta):
+            x = df['Cluster' + str(l)][i]
+            data_list = ast.literal_eval(x)
+            print(i)
+            for j in data_list:
+                z += 1
+                y = j[3]
+                q = j[0]
+                col_name = 'col' + str(z)  # Create a unique column name
+
+                if q == 'HPC':
+                    # Initialize the new column with zeros
+                    new_df_HPC[col_name] = 0
+
+                    for k in range(i, i + y, timedelta):
+                        new_df_HPC.at[k, col_name] = 1
+
+                if q == 'MCS':
+                    # Initialize the new column with zeros
+                    new_df_MCS[col_name] = 0
+
+                    for k in range(i, i + y, timedelta):
+                        new_df_MCS.at[k, col_name] = 1
+                if q == 'NCS':
+                    # Initialize the new column with zeros
+                    new_df_NCS[col_name] = 0
+
+                    for k in range(i, i + y, timedelta):
+                        new_df_NCS.at[k, col_name] = 1
+
+        dummy = 0
+        new_df_HPC.to_excel(os.path.join(folder_path, 'Belegungsplan_HPC_Cluster' + str(l) + '.xlsx'), index=True)
+        print('HPC gespeichert')
+        new_df_MCS.to_excel(os.path.join(folder_path, 'Belegungsplan_MCS_Cluster' + str(l) + '.xlsx'), index=True)
+        print('MCS gespeichert')
+        new_df_NCS.to_excel(os.path.join(folder_path, 'Belegungsplan_NCS_Cluster' + str(l) + '.xlsx'), index=True)
+        print('NCS gespeichert')
+        print('Cluster' + str(l) + ' gespeichert!')

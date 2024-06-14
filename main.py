@@ -15,6 +15,7 @@ if __name__ == '__main__':
 
     ### CLUSTERING ###
     if neu_clustern:
+        dummy = 0
 
         if wochen_clustern:
             # Verkehrsdaten aufrufen
@@ -92,6 +93,7 @@ if __name__ == '__main__':
             print ('Inititalisierung des Clusterns ist falsch!')
 
     else:
+        dummy = 0
         beispieltage = pd.read_excel('beispieltage.xlsx', index_col=0)
         beispielwochen = pd.read_excel('beispielwochen.xlsx', index_col=0)
         beispielwochen_plotten(beispieltage, anzahl_cluster_tage)
@@ -99,74 +101,102 @@ if __name__ == '__main__':
 
     #### CLUSTERING ENDE ####
 
+    print('Clustern abgeschlossen!')
+
     #### INPUT-DATEN ERZEUGEN ####
-
-    ladewahrscheinlichkeiten_hpc = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'H')
-    ladewahrscheinlichkeiten_mcs = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'I')
-    ladewahrscheinlichkeiten_ncs = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overnight stops', 'G')
-
-    if tage_clustern:
-
-        # LKW-Daten mit Wahrscheinlichkeiten multiplizieren
-        lkw_hpc = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_hpc)
-        lkw_mcs = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_mcs)
-        lkw_ncs = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_ncs)
-
-        # auf ganze LKW runden
-        lkw_hpc = rounded_dataframe_to_integer_trucks(lkw_hpc)
-        lkw_mcs = rounded_dataframe_to_integer_trucks(lkw_mcs)
-        lkw_ncs = rounded_dataframe_to_integer_trucks(lkw_ncs)
-
-        # Kombinieren in einem Dataframe
-        dataframes = [lkw_hpc, lkw_mcs, lkw_ncs]
-        lkw_hpc.name = "hpc"
-        lkw_mcs.name = "mcs"
-        lkw_ncs.name = "ncs"
-
-        # Output hier ist ein Dataframe mit Arrays für jeden LKW
-        # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
-        ladekurve = ladekurve()
-        alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
-        index_list = lkw_hpc.index.tolist()
-        alle_lkw.index = index_list
-        alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
+    if neue_input_daten_erzeugen:
         dummy = 0
-        beispielwochen_plotten(lkw_hpc, anzahl_cluster_tage)
-        beispielwochen_plotten(lkw_mcs, anzahl_cluster_tage)
-        beispielwochen_plotten(lkw_ncs, anzahl_cluster_tage)
+        ladewahrscheinlichkeiten_hpc = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'H')
+        ladewahrscheinlichkeiten_mcs = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'I')
+        ladewahrscheinlichkeiten_ncs = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overnight stops', 'G')
+
+        if tage_clustern:
+
+            # LKW-Daten mit Wahrscheinlichkeiten multiplizieren
+            lkw_hpc = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_hpc)
+            lkw_mcs = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_mcs)
+            lkw_ncs = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_ncs)
+
+            # auf ganze LKW runden
+            lkw_hpc = rounded_dataframe_to_integer_trucks(lkw_hpc)
+            lkw_mcs = rounded_dataframe_to_integer_trucks(lkw_mcs)
+            lkw_ncs = rounded_dataframe_to_integer_trucks(lkw_ncs)
+
+            # Kombinieren in einem Dataframe
+            dataframes = [lkw_hpc, lkw_mcs, lkw_ncs]
+            lkw_hpc.name = "hpc"
+            lkw_mcs.name = "mcs"
+            lkw_ncs.name = "ncs"
+
+            # Output hier ist ein Dataframe mit Arrays für jeden LKW
+            # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
+            ladekurve = ladekurve()
+            alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
+            index_list = lkw_hpc.index.tolist()
+            alle_lkw.index = index_list
+            alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
+
+            beispielwochen_plotten(lkw_hpc, anzahl_cluster_tage)
+            beispielwochen_plotten(lkw_mcs, anzahl_cluster_tage)
+            beispielwochen_plotten(lkw_ncs, anzahl_cluster_tage)
 
 
-    if wochen_clustern:
+        if wochen_clustern:
 
-        # Wahrscheinlichkeiten auf eine Woche hochskalieren
-        ladewahrscheinlichkeiten_hpc_woche = pd.concat([ladewahrscheinlichkeiten_hpc] * 7, ignore_index=True)
-        ladewahrscheinlichkeiten_mcs_woche = pd.concat([ladewahrscheinlichkeiten_mcs] * 7, ignore_index=True)
-        ladewahrscheinlichkeiten_ncs_woche = pd.concat([ladewahrscheinlichkeiten_ncs] * 7, ignore_index=True)
+            # Wahrscheinlichkeiten auf eine Woche hochskalieren
+            ladewahrscheinlichkeiten_hpc_woche = pd.concat([ladewahrscheinlichkeiten_hpc] * 7, ignore_index=True)
+            ladewahrscheinlichkeiten_mcs_woche = pd.concat([ladewahrscheinlichkeiten_mcs] * 7, ignore_index=True)
+            ladewahrscheinlichkeiten_ncs_woche = pd.concat([ladewahrscheinlichkeiten_ncs] * 7, ignore_index=True)
 
-        # LKW-Daten mit Wahrscheinlichkeiten multiplizieren
-        lkw_hpc_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_hpc_woche)
-        lkw_mcs_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_mcs_woche)
-        lkw_ncs_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_ncs_woche)
+            # LKW-Daten mit Wahrscheinlichkeiten multiplizieren
+            lkw_hpc_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_hpc_woche)
+            lkw_mcs_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_mcs_woche)
+            lkw_ncs_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_ncs_woche)
 
-        # auf ganze LKW runden
-        lkw_hpc_woche = rounded_dataframe_to_integer_trucks(lkw_hpc_woche)
-        lkw_mcs_woche = rounded_dataframe_to_integer_trucks(lkw_mcs_woche)
-        lkw_ncs_woche = rounded_dataframe_to_integer_trucks(lkw_ncs_woche)
+            # auf ganze LKW runden
+            lkw_hpc_woche = rounded_dataframe_to_integer_trucks(lkw_hpc_woche)
+            lkw_mcs_woche = rounded_dataframe_to_integer_trucks(lkw_mcs_woche)
+            lkw_ncs_woche = rounded_dataframe_to_integer_trucks(lkw_ncs_woche)
 
-        # Kombinieren in einem Dataframe
-        dataframes = [lkw_ncs_woche, lkw_mcs_woche, lkw_ncs_woche]
-        lkw_hpc_woche.name = "hpc"
-        lkw_mcs_woche.name = "mcs"
-        lkw_ncs_woche.name = "ncs"
+            # Kombinieren in einem Dataframe
+            dataframes = [lkw_ncs_woche, lkw_mcs_woche, lkw_ncs_woche]
+            lkw_hpc_woche.name = "hpc"
+            lkw_mcs_woche.name = "mcs"
+            lkw_ncs_woche.name = "ncs"
 
-        # Output hier ist ein Dataframe mit Arrays für jeden LKW
-        # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
-        ladekurve = ladekurve()
-        alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
-        index_list = lkw_hpc_woche.index.tolist()
-        alle_lkw.index = index_list
-        alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
-        dummy= 0
+            # Output hier ist ein Dataframe mit Arrays für jeden LKW
+            # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
+            ladekurve = ladekurve()
+            alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
+            index_list = lkw_hpc_woche.index.tolist()
+            alle_lkw.index = index_list
+            alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
+
+    else:
+        dummy = 0
+        alle_lkw = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+
+
+    #### INPUT-DATEN ERZEUGEN ENDE ####
+
+    print('Inputdaten erzeugen abgeschlossen!')
+
+    #### Anzahl Ladesäulen optimieren ####
+
+    if neue_belegungspläne:
+
+        belegunspläne_erstellen(alle_lkw)
+    else:
+        dummy = 0
+        HPC_Cluster0 = pd.read_excel('Belegungspläne/Belegungsplan_HPC_Cluster0.xlsx', index_col=0)
+        max_index_to_keep = 1435
+
+        # Index-Werte ermitteln, die kleiner oder gleich max_index_to_keep sind
+        indices_to_keep = HPC_Cluster0.index[HPC_Cluster0.index <= max_index_to_keep]
+        dummy = 0
+
+        df_filtered = HPC_Cluster0.loc[indices_to_keep]
+        dummy = 0
 
 
 
