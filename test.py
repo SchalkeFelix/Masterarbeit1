@@ -3,6 +3,8 @@ from gurobipy import GRB
 from Initialiserung import*
 from methods import*
 import ast
+import pickle
+from heapq import heappush, heappop
 '''
 # Erstellen des Modells
 model = gp.Model("Optimierung Anzahl Ladesäulen")
@@ -245,4 +247,283 @@ for new_idx, old_idx in enumerate(used_stations):
     lkw_str = ', '.join('LKW' + str(i + 1) for i in lkw_list)
     print(f"Ladesäule {new_idx + 1}: {lkw_str}")
 """
+"""
+import simpy
+
+# Liste der LKW mit ihren genauen Ankunfts- und Abfahrtszeiten (in Stunden seit dem Start der Simulation)
+TRUCKS = [
+    {'ankunft': 0.5, 'abfahrt': 2.5},
+    {'ankunft': 1.0, 'abfahrt': 4.0},
+    {'ankunft': 1.5, 'abfahrt': 3.0},
+    # Weitere LKW hier hinzufügen...
+]
+
+class ChargingStation:
+    def __init__(self, env, num_stations):
+        self.env = env
+        self.station = simpy.Resource(env, capacity=num_stations)
+
+    def charge(self, truck):
+        charge_time = truck['abfahrt'] - truck['ankunft']
+        yield self.env.timeout(charge_time)
+
+def truck_charging(env, station, truck):
+    yield env.timeout(truck['ankunft'])
+    with station.station.request() as req:
+        yield req
+        yield env.process(station.charge(truck))
+        print(f"LKW geladen: Ankunft um {truck['ankunft']}, Abfahrt um {truck['abfahrt']}")
+
+# Start der Simulation
+env = simpy.Environment()
+station = ChargingStation(env, num_stations=1)  # Start mit einer Ladestation
+
+for truck in TRUCKS:
+    env.process(truck_charging(env, station, truck))
+
+env.run()
+
+# Ergebnis: Optimale Anzahl von Ladestationen berechnen
+charged_trucks = len(station.station.queue) + len(station.station.users)
+total_trucks = len(TRUCKS)
+print(f"Anzahl der Ladestationen benötigt: {charged_trucks}/{total_trucks} LKW geladen.")
+"""
+
+"""
+import random
+
+def min_ladesaeulen(lkw_data):
+    # LKWs nach Ankunftszeiten sortieren
+    lkw_data.sort(key=lambda x: x[1])
+    n = len(lkw_data)
+    min_needed = int(0.8 * n)
+
+    ladesaeulen = []
+    lkw_to_ladesaeule = {}
+    ladesaeule_count = 0
+    geladen_count = 0
+
+    for truck_id, ankunft, abfahrt in lkw_data:
+        # Entferne alle LKWs aus den Ladesäulen, die bereits abgefahren sind
+        ladesaeulen = [(endzeit, ladesaeule_id) for endzeit, ladesaeule_id in ladesaeulen if endzeit > ankunft]
+
+        # Wenn es noch freie Ladesäulen gibt, benutze die
+        if ladesaeulen:
+            ladesaeule_id = ladesaeulen[0][1]
+        else:
+            # Neue Ladesäule hinzufügen
+            ladesaeule_id = ladesaeule_count
+            ladesaeule_count += 1
+
+        ladesaeulen.append((abfahrt, ladesaeule_id))
+
+        # Speichere die Zuordnung des LKW zur Ladesäule
+        lkw_to_ladesaeule[truck_id] = ladesaeule_id
+
+        # Zähle den geladenen LKW
+        geladen_count += 1
+
+        # Wenn wir mindestens 80% der LKW geladen haben, brechen wir ab
+        if geladen_count >= min_needed:
+            break
+
+    # Ausgabe der Zuordnungen
+    print(f"Minimale Anzahl an Ladesäulen: {ladesaeule_count}")
+    print("LKW-Zuordnungen zu Ladesäulen:")
+    for truck_id, ladesaeule_id in lkw_to_ladesaeule.items():
+        print(f"LKW {truck_id} -> Ladesäule {ladesaeule_id}")
+
+# Generiere Beispiel-LKW-Daten mit 1000 LKWs
+def generate_lkw_data(num_lkw, max_time=1000, min_duration=1, max_duration=10):
+    lkw_data = []
+    for truck_id in range(1, num_lkw + 1):
+        ankunft = random.randint(0, max_time)
+        duration = random.randint(min_duration, max_duration)
+        abfahrt = ankunft + duration
+        lkw_data.append((truck_id, ankunft, abfahrt))
+    return lkw_data
+
+# Beispielwerte für 10 LKWs
+random.seed(42)  # Für reproduzierbare Ergebnisse
+lkw_data = generate_lkw_data(10)
+print(lkw_data)
+min_ladesaeulen(lkw_data)
+"""
+
+"""
+# Liste der Ereignisse
+events = []
+
+# Ereignisse aus den Daten extrahieren
+for truck in data:
+    lkw_id, arrival, departure = truck
+    events.append((arrival, 'Ankunft', lkw_id))
+    events.append((departure, 'Abfahrt', lkw_id))
+
+# Ereignisse sortieren
+events.sort()
+
+# Ladesäulen-Dict initialisieren
+charging_stations = {}
+lkw_to_station = {}
+
+# Zähler für die maximale Anzahl gleichzeitiger Ladesäulen
+max_stations_needed = 0
+current_stations = 0
+available_stations = []
+
+# Anzahl der LKWs und Grenze für 80%
+total_trucks = len(data)
+assigned_trucks = 0
+limit = int(total_trucks * 0.8)
+
+# Durch die Ereignisse gehen
+for event in events:
+    time, event_type, lkw_id = event
+    if assigned_trucks >= limit:
+        break
+    if event_type == 'Ankunft':
+        current_stations += 1
+        if available_stations:
+            station = available_stations.pop()
+        else:
+            station = max_stations_needed + 1
+        charging_stations[station] = time
+        lkw_to_station[lkw_id] = station
+        assigned_trucks += 1
+        if current_stations > max_stations_needed:
+            max_stations_needed = current_stations
+    else:
+        current_stations -= 1
+        if lkw_id in lkw_to_station:
+            station = lkw_to_station[lkw_id]
+            available_stations.append(station)
+            del charging_stations[station]
+
+# Ausgabe der maximal benötigten Ladesäulen
+print(f"Wie viele Ladesäulen brauche ich? {max_stations_needed}")
+
+# Ausgabe der LKW-Ladesäulen-Zuordnung
+print("LKW-Ladesäulen-Zuordnung (bis 80% der LKWs):")
+for lkw_id, station in lkw_to_station.items():
+    print(f"LKW-ID {lkw_id} -> Ladesäule {station}")
+"""
+
+import pandas as pd
+
+df = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+anzahl_spalten = df.shape[1]
+
+liste_cluster = []
+for i in range(0, anzahl_spalten):
+    liste_cluster.append('Cluster'+ str(i))
+liste_ladesäulen = ['NCS', 'HPC', 'MCS']
+# Dictionary zum Speichern der Ergebnisse
+result = {}
+
+# Über die Spalten iterieren
+
+for l in range(0, anzahl_spalten):
+    cluster_name ='Cluster' + str(l)
+    for i in range(0, len(df) * timedelta, timedelta):
+        x = df[cluster_name][i]
+        data_list = ast.literal_eval(x)
+        print(i)
+        for j in data_list:
+            ladesaeulentyp = j[0]
+            ladezeit = j[3]
+            truck_id = j[5]
+            dummy = 0
+
+            ankunftszeit = i
+            abfahrtszeit = i + ladezeit
+
+            if cluster_name not in result:
+                result[cluster_name] = {}
+
+            if ladesaeulentyp not in result[cluster_name]:
+                result[cluster_name][ladesaeulentyp] = []
+
+            result[cluster_name][ladesaeulentyp].append((truck_id, ankunftszeit, abfahrtszeit))
+        print(i)
+dummY = 0
+print(result)
+#########################################################################################
+
+# Liste der Ereignisse
+events = []
+# Define the folder path where the files will be saved
+folder_path = 'Belegungspläne_Array'
+
+# Create the folder if it does not exist
+os.makedirs(folder_path, exist_ok=True)
+for l in liste_cluster:
+    for k in liste_ladesäulen:
+        data = result[l][k]
+        # Ereignisse aus den Daten extrahieren
+        for truck in data:
+            lkw_id, arrival, departure = truck
+            events.append((arrival, 'Ankunft', lkw_id))
+            events.append((departure, 'Abfahrt', lkw_id))
+
+        # Ereignisse sortieren
+        events.sort()
+
+        # Ladesäulen-Dict initialisieren
+        charging_stations = {}
+        lkw_to_station = {}
+
+        # Zähler für die maximale Anzahl gleichzeitiger Ladesäulen
+        max_stations_needed = 0
+        current_stations = 0
+        available_stations = []
+
+        # Anzahl der LKWs und Grenze für 80%
+        total_trucks = len(data)
+        assigned_trucks = 0
+        limit = int(total_trucks * 0.8)
+
+        # Durch die Ereignisse gehen
+        for event in events:
+            time, event_type, lkw_id = event
+            if assigned_trucks >= limit:
+                break
+            if event_type == 'Ankunft':
+                current_stations += 1
+                if available_stations:
+                    station = available_stations.pop()
+                else:
+                    station = max_stations_needed + 1
+                charging_stations[station] = time
+                lkw_to_station[lkw_id] = station
+                assigned_trucks += 1
+                if current_stations > max_stations_needed:
+                    max_stations_needed = current_stations
+            else:
+                current_stations -= 1
+                if lkw_id in lkw_to_station:
+                    station = lkw_to_station[lkw_id]
+                    available_stations.append(station)
+                    del charging_stations[station]
+        pickle_datei = os.path.join(folder_path, l + '_' + k + '.pkl')
+        pickle_datei1 = os.path.join(folder_path, l + '_' + k + '_max.pkl')
+        with open(pickle_datei, 'wb') as f:
+            pickle.dump(lkw_to_station, f)
+        with open(pickle_datei1, 'wb') as f:
+            pickle.dump(max_stations_needed, f)
+
+with open('Belegungspläne_Array/Cluster0_HPC.pkl', 'rb') as f:
+    lkw_to_stations = pickle.load(f)
+# Ausgabe der LKW-Ladesäulen-Zuordnung
+print("LKW-Ladesäulen-Zuordnung (bis 80% der LKWs):")
+for lkw_id, station in lkw_to_stations.items():
+    print(f"LKW-ID {lkw_id} -> Ladesäule {station}")
+
+# Ausgabe der maximal benötigten Ladesäulen
+print(f"Wie viele Ladesäulen brauche ich? {max_stations_needed}")
+
+
+
+
+
 

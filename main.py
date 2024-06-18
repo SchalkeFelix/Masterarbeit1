@@ -13,7 +13,7 @@ from Initialiserung import *
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
 
-    ### CLUSTERING ###
+    ############################################## CLUSTERING ##########################################################
     if neu_clustern:
         dummy = 0
 
@@ -99,11 +99,11 @@ if __name__ == '__main__':
         beispielwochen_plotten(beispieltage, anzahl_cluster_tage)
         dummy = 0
 
-    #### CLUSTERING ENDE ####
+    ############################################## CLUSTERING ENDE ####################################################
 
     print('Clustern abgeschlossen!')
 
-    #### INPUT-DATEN ERZEUGEN ####
+    ############################################## INPUT-DATEN ERZEUGEN ###############################################
     if neue_input_daten_erzeugen:
         dummy = 0
         ladewahrscheinlichkeiten_hpc = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'H')
@@ -177,11 +177,12 @@ if __name__ == '__main__':
         alle_lkw = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
 
 
-    #### INPUT-DATEN ERZEUGEN ENDE ####
+    ############################################## INPUT-DATEN ERZEUGEN ENDE ###########################################
 
     print('Inputdaten erzeugen abgeschlossen!')
 
-    #### Anzahl Ladesäulen optimieren ####
+    ############################################## ANZAHL LADESÄULEN OPTIMIERNEN #######################################
+
 
     if neue_belegungspläne:
 

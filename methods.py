@@ -431,7 +431,7 @@ def rounded_dataframe_to_integer_trucks(df):
     result_df = result_df.astype(int)
     return result_df
 
-def generate_entry(df_name, ladekurve):
+def generate_entry(df_name, ladekurve, vergebene_ids):
     # Eintrag 1: Abhängig vom Namen des DataFrames
     if "hpc" in df_name:
         entry1 = 'HPC'
@@ -475,14 +475,18 @@ def generate_entry(df_name, ladekurve):
 
     dummy = 0
 
+    while True:
+        entry6 = random.randint(1, 1000000)  # Beispiel ID-Bereich 1-100000
+        if entry6 not in vergebene_ids:
+            vergebene_ids.add(entry6)
+            break
 
-
-    return [entry1, entry2, entry3, entry4, entry5]
+    return [entry1, entry2, entry3, entry4, entry5, entry6]
 
 def generate_lkw_in_array(dataframes, ladekurve):
     # Initialisieren des resultierenden DataFrames mit der gleichen Struktur wie die Eingabedaten
     result_dict = {col: [] for col in dataframes[0].columns}
-
+    vergebene_id = set()
     # Durchlaufen der Zeilen
     num_rows = max(df.shape[0] for df in dataframes)
     for row_idx in range(0, timedelta * num_rows, timedelta):
@@ -491,7 +495,7 @@ def generate_lkw_in_array(dataframes, ladekurve):
             if row_idx < df.shape[0]*timedelta:
                 for col in df.columns:
                     value = df.at[row_idx, col]
-                    arrays = [generate_entry(df.name, ladekurve) for _ in range(value)]  # Hier wird df.name verwendet
+                    arrays = [generate_entry(df.name, ladekurve, vergebene_id) for _ in range(value)]  # Hier wird df.name verwendet
                     row_data[col].extend(arrays)
         for col in row_data:
             result_dict[col].append(row_data[col])
