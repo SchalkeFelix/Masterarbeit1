@@ -571,3 +571,105 @@ def belegunspläne_erstellen(alle_lkw):
         new_df_NCS.to_excel(os.path.join(folder_path, 'Belegungsplan_NCS_Cluster' + str(l) + '.xlsx'), index=True)
         print('NCS gespeichert')
         print('Cluster' + str(l) + ' gespeichert!')
+
+def belegungspläne_array(alle_lkw):
+
+    df = alle_lkw
+
+    anzahl_spalten = df.shape[1]
+
+    liste_cluster = []
+    for i in range(0, anzahl_spalten):
+        liste_cluster.append('Cluster' + str(i))
+    liste_ladesäulen = ['NCS', 'HPC', 'MCS']
+    # Dictionary zum Speichern der Ergebnisse
+    result = {}
+
+    # Über die Spalten iterieren
+
+    for l in range(0, anzahl_spalten):
+        cluster_name = 'Cluster' + str(l)
+        for i in range(0, len(df) * timedelta, timedelta):
+            x = df[cluster_name][i]
+            data_list = ast.literal_eval(x)
+            print(i)
+            for j in data_list:
+                ladesaeulentyp = j[0]
+                ladezeit = j[3]
+                truck_id = j[5]
+                dummy = 0
+
+                ankunftszeit = i
+                abfahrtszeit = i + ladezeit
+
+                if cluster_name not in result:
+                    result[cluster_name] = {}
+
+                if ladesaeulentyp not in result[cluster_name]:
+                    result[cluster_name][ladesaeulentyp] = []
+
+                result[cluster_name][ladesaeulentyp].append((truck_id, ankunftszeit, abfahrtszeit))
+            print(i)
+    dummY = 0
+    print(result)
+    # Liste der Ereignisse
+    events = []
+    # Define the folder path where the files will be saved
+    folder_path = 'Belegungspläne_Array'
+
+    # Create the folder if it does not exist
+    os.makedirs(folder_path, exist_ok=True)
+    for l in liste_cluster:
+        for k in liste_ladesäulen:
+            data = result[l][k]
+            # Ereignisse aus den Daten extrahieren
+            for truck in data:
+                lkw_id, arrival, departure = truck
+                events.append((arrival, 'Ankunft', lkw_id))
+                events.append((departure, 'Abfahrt', lkw_id))
+
+            # Ereignisse sortieren
+            events.sort()
+
+            # Ladesäulen-Dict initialisieren
+            charging_stations = {}
+            lkw_to_station = {}
+
+            # Zähler für die maximale Anzahl gleichzeitiger Ladesäulen
+            max_stations_needed = 0
+            current_stations = 0
+            available_stations = []
+
+            # Anzahl der LKWs und Grenze für 80%
+            total_trucks = len(data)
+            assigned_trucks = 0
+            limit = int(total_trucks * 0.8)
+
+            # Durch die Ereignisse gehen
+            for event in events:
+                time, event_type, lkw_id = event
+                if assigned_trucks >= limit:
+                    break
+                if event_type == 'Ankunft':
+                    current_stations += 1
+                    if available_stations:
+                        station = available_stations.pop()
+                    else:
+                        station = max_stations_needed + 1
+                    charging_stations[station] = time
+                    lkw_to_station[lkw_id] = station
+                    assigned_trucks += 1
+                    if current_stations > max_stations_needed:
+                        max_stations_needed = current_stations
+                else:
+                    current_stations -= 1
+                    if lkw_id in lkw_to_station:
+                        station = lkw_to_station[lkw_id]
+                        available_stations.append(station)
+                        del charging_stations[station]
+            pickle_datei = os.path.join(folder_path, l + '_' + k + '.pkl')
+            pickle_datei1 = os.path.join(folder_path, l + '_' + k + '_max.pkl')
+            with open(pickle_datei, 'wb') as f:
+                pickle.dump(lkw_to_station, f)
+            with open(pickle_datei1, 'wb') as f:
+                pickle.dump(max_stations_needed, f)

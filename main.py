@@ -186,18 +186,8 @@ if __name__ == '__main__':
 
     if neue_belegungspläne:
 
-        belegunspläne_erstellen(alle_lkw)
+        belegungspläne_array(alle_lkw)
     else:
-        dummy = 0
-        HPC_Cluster0 = pd.read_excel('Belegungspläne/Belegungsplan_HPC_Cluster0.xlsx', index_col=0)
-        max_index_to_keep = 1435
-
-        # Index-Werte ermitteln, die kleiner oder gleich max_index_to_keep sind
-        indices_to_keep = HPC_Cluster0.index[HPC_Cluster0.index <= max_index_to_keep]
-        dummy = 0
-
-        df_filtered = HPC_Cluster0.loc[indices_to_keep]
-        dummy = 0
-
+       dummy = 0
 
 

@@ -115,7 +115,6 @@ for i, idx in enumerate(df.index):
 print("\nNew DataFrame:")
 print(new_df.head(20))
 '''
-
 """
 import warnings
 
@@ -288,7 +287,6 @@ charged_trucks = len(station.station.queue) + len(station.station.users)
 total_trucks = len(TRUCKS)
 print(f"Anzahl der Ladestationen benötigt: {charged_trucks}/{total_trucks} LKW geladen.")
 """
-
 """
 import random
 
@@ -349,7 +347,6 @@ lkw_data = generate_lkw_data(10)
 print(lkw_data)
 min_ladesaeulen(lkw_data)
 """
-
 """
 # Liste der Ereignisse
 events = []
@@ -408,10 +405,11 @@ print("LKW-Ladesäulen-Zuordnung (bis 80% der LKWs):")
 for lkw_id, station in lkw_to_station.items():
     print(f"LKW-ID {lkw_id} -> Ladesäule {station}")
 """
-
+"""
 import pandas as pd
 
-df = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+
+
 anzahl_spalten = df.shape[1]
 
 liste_cluster = []
@@ -521,9 +519,153 @@ for lkw_id, station in lkw_to_stations.items():
 
 # Ausgabe der maximal benötigten Ladesäulen
 print(f"Wie viele Ladesäulen brauche ich? {max_stations_needed}")
+"""
+"""
+def check_and_remove(array, a, b):
+    # Überprüfen, ob alle Zahlen zwischen a und b im Array vorhanden sind
+    if all(x in array for x in range(a, b + 1)):
+        # Falls ja, entfernen wir diese Zahlen aus dem Array
+        array = [x for x in array if x < a or x > b]
+        return array
+    else:
+        # Falls nicht, geben wir den ursprünglichen Array zurück
+        return array
+
+
+
+data = [(1904, 10, 20),
+        (1999, 15, 20),
+        (1968, 20, 30),
+        (1967, 0, 15),
+        (1965, 5, 25),
+        (1940, 15, 25),
+        (1941, 25, 45),
+        (1997, 5, 15),
+        (1956, 20, 30),
+        (1978, 10, 40)]
+
+ladesäule= [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51]
+zuordnung=[]
+dict = {'Ladesäule1' : ladesäule}
+i=1
+
+print(dict)
+for lkw in data:
+    for key, value in dict.items():
+        a = lkw[1]
+        b = lkw[2]
+        dummy = 0
+        if all(x in value for x in range(a, b + 1)):
+            # Falls ja, entfernen wir diese Zahlen aus dem Array
+            array = [x for x in value if x < a or x > b]
+            dict.update({key:array})
+            zuordnung.append([lkw[0], key])
+            break
+        else:
+            i+=1
+            array = [x for x in ladesäule if x < a or x > b]
+            dict['Ladesäule'+str(i)] = array
+            zuordnung.append([lkw[0], 'Ladesäule'+str(i)])
+        dummY = 0
+
+
+
+print(zuordnung)
+"""
+import networkx as nx
+from networkx.algorithms.flow import min_cost_flow
+from networkx.algorithms.flow import max_flow_min_cost
+
+# Initialisieren des Graphen
+G = nx.DiGraph()
+
+# Anzahl der Zeitabschnitte (5 Minuten Intervalle in einem Tag)
+time_intervals = 10
+
+# Start- und Endknoten
+start_node = 'start'
+end_node = 'end'
+
+# Füge den Start- und Endknoten hinzu
+G.add_node(start_node)
+G.add_node(end_node)
+
+# Füge Knoten für jeden Zeitpunkt für jeden Ladesäulentyp hinzu
+charging_types = ['A', 'B', 'C']
+for typ in charging_types:
+    for t in range(time_intervals):
+        G.add_node(f"{typ}_{t}")
+
+# Füge Kanten mit hohen Kosten zwischen aufeinanderfolgenden Zeitknoten für jeden Ladesäulentyp hinzu
+high_cost = 1e6  # Sehr hohe Kosten
+for typ in charging_types:
+    for t in range(time_intervals - 1):
+        G.add_edge(f"{typ}_{t}", f"{typ}_{t + 1}", weight=high_cost, capacity=float('inf'))
+
+# Füge Kanten von Start zu den ersten Zeitknoten jedes Ladesäulentyps hinzu
+for typ in charging_types:
+    G.add_edge(start_node, f"{typ}_0", weight=0, capacity=float('inf'))
+
+# Füge Kanten von den letzten Zeitknoten jedes Ladesäulentyps zum Endknoten hinzu
+for typ in charging_types:
+    G.add_edge(f"{typ}_{time_intervals - 1}", end_node, weight=0, capacity=float('inf'))
+
+# Beispiel LKW-Daten (Ladesäulentyp, Ankunftszeitpunkt und Abfahrtszeitpunkt)
+trucks = [
+    ('A', 1, 3),
+    ('B', 3, 5),
+    ('C', 6, 9),
+    ('A', 4, 6),
+    ('B', 0, 2),
+    ('C', 3, 5)
+    # Fügen Sie hier weitere LKWs hinzu
+]
+
+# Füge Kanten für die LKWs hinzu
+for typ, start_time, end_time in trucks:
+    G.add_edge(f"{typ}_{start_time}", f"{typ}_{end_time}", weight=0, capacity=1)
 
 
 
 
+# Funktion zur Berechnung des minimalen Kostenflusses
+def calculate_min_cost_flow(graph, required_flow):
+    # Füge eine Superquelle und ein Superziel hinzu
+    super_source = 'super_source'
+    super_sink = 'super_sink'
+    graph.add_node(super_source)
+    graph.add_node(super_sink)
+
+    # Verbinde die Superquelle mit dem Startknoten
+    graph.add_edge(super_source, start_node, weight=0, capacity=required_flow)
+
+    # Verbinde das Endknoten mit dem Superziel
+    graph.add_edge(end_node, super_sink, weight=0, capacity=required_flow)
+
+    # Berechne den maximalen Fluss mit minimalen Kosten
+    flow_dict = max_flow_min_cost(graph, super_source, super_sink)
+
+    # Entferne die Superquelle und das Superziel
+    graph.remove_node(super_source)
+    graph.remove_node(super_sink)
+
+    return flow_dict
+
+flow = 1
+while True:
+    flow_dict = calculate_min_cost_flow(G, flow)
+    used_truck_edges = sum(flow_dict[f"{typ}_{start_time}"][f"{typ}_{end_time}"] for typ, start_time, end_time in trucks)
+    threshold = 0.8 * len(trucks)
+    if used_truck_edges >= threshold:
+        break
+    else:
+        flow +=1
 
 
+# Drucke den Fluss für jede Kante aus
+for u in flow_dict:
+    for v in flow_dict[u]:
+        flow_value = flow_dict[u][v]
+        if flow_value > 0:
+            print(f"Fluss von {u} nach {v}: {flow_value}")
+print('Der Flow ist: ' +str(flow))

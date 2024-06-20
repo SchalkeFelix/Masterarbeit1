@@ -17,5 +17,7 @@ obere_grenze_soc = 0.3                                  # Anfangs-COP, obere Gre
 ladeleistung_liste = [150, 350, 1000]                   # Ladeleistung der Ladesäulen; in Reihenfolge NCS, HPC, MCS
 
 #### Optimierung Anzahl Ladesäulen ####
-neue_belegungspläne = False
+neue_belegungspläne = False                             # Pläne neu erstellen
+
+
 
