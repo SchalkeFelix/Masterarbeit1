@@ -13,6 +13,7 @@ import pandas as pd
 import math
 import warnings
 import ast
+import pickle
 
 
 
@@ -673,3 +674,66 @@ def belegungspläne_array(alle_lkw):
                 pickle.dump(lkw_to_station, f)
             with open(pickle_datei1, 'wb') as f:
                 pickle.dump(max_stations_needed, f)
+
+def lkw_in_tupelliste(alle_lkw):
+
+    df = alle_lkw
+
+    anzahl_spalten = df.shape[1]
+
+    # Define the folder path where the files will be saved
+    folder_path = 'Tupellisten_LKW'
+
+    # Create the folder if it does not exist
+    os.makedirs(folder_path, exist_ok=True)
+
+    # Dictionary zum Speichern der Ergebnisse
+
+    größte_abfahrtszeit = 0
+    # Über die Spalten iterieren
+
+    for l in range(0, anzahl_spalten):
+        result = []
+        cluster_name = 'Cluster' + str(l)
+        for i in range(0, len(df) * timedelta, timedelta):
+            x = df[cluster_name][i]
+            data_list = ast.literal_eval(x)
+            print(i)
+            for j in data_list:
+                ladesaeulentyp = j[0]
+                ladezeit = j[3]
+                truck_id = j[5]
+                dummy = 0
+
+                ankunftszeit = i
+                abfahrtszeit = i + ladezeit
+                abfahrtszeit_int = int(abfahrtszeit/timedelta)
+                if abfahrtszeit_int >= größte_abfahrtszeit:
+                    größte_abfahrtszeit = abfahrtszeit_int
+                x = (ladesaeulentyp, int(ankunftszeit/timedelta), int(abfahrtszeit/timedelta), truck_id)
+                result.append((ladesaeulentyp, int(ankunftszeit/timedelta), int(abfahrtszeit/timedelta)))
+        pickle_datei = os.path.join(folder_path, 'Tupelliste_' + cluster_name + '.pkl')
+        pickle_datei1 = os.path.join(folder_path, 'Tupelliste_' + cluster_name + '_groeßte_Abfahrt.pkl')
+        with open(pickle_datei, 'wb') as f:
+            pickle.dump(result, f)
+        with open(pickle_datei1, 'wb') as f:
+            pickle.dump(größte_abfahrtszeit, f)
+
+def tupelliste_sortieren(cluster_verteilung_kumuliert):
+    k = 0
+    result = []
+    for i in range(0, len(cluster_verteilung_kumuliert)):
+        with open('Tupellisten_LKW/Tupelliste_Cluster' + str(i) +'.pkl', 'rb') as file:
+            daten = pickle.load(file)
+        for j in range(k, cluster_verteilung_kumuliert[i]):
+            for tupel in daten:
+                Ladesäule = tupel[0]
+                Ankunft = int(tupel[1]+((1440/timedelta)*j))
+                Abfahrt = int(tupel[2]+((1440/timedelta)*j))
+                dummy = 0
+                if Abfahrt <= int((365*24*60)/timedelta):
+                    result.append((Ladesäule, Ankunft, Abfahrt))
+            dummy = 0
+        k = cluster_verteilung_kumuliert[i]
+        print('Cluster ' + str(i) + ' wurde hinzugefügt!' )
+    return result

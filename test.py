@@ -4,7 +4,9 @@ from Initialiserung import*
 from methods import*
 import ast
 import pickle
+import time
 from heapq import heappush, heappop
+
 '''
 # Erstellen des Modells
 model = gp.Model("Optimierung Anzahl Ladesäulen")
@@ -572,16 +574,27 @@ for lkw in data:
 
 print(zuordnung)
 """
+
+
 import networkx as nx
 from networkx.algorithms.flow import min_cost_flow
 from networkx.algorithms.flow import max_flow_min_cost
 
+alle_lkw = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+lkw_in_tupelliste(alle_lkw)
+
+with open('Tupellisten_LKW/Tupelliste_Cluster0.pkl', 'rb') as file:
+    trucks = pickle.load(file)
+with open('Tupellisten_LKW/Tupelliste_Cluster0_groeßte_Abfahrt.pkl', 'rb') as file:
+    größte_Abfahrtszeit = pickle.load(file)
+dummy = 0
+start_time = time.time()
 # Initialisieren des Graphen
 G = nx.DiGraph()
 
 # Anzahl der Zeitabschnitte (5 Minuten Intervalle in einem Tag)
-time_intervals = 10
-
+time_intervals = größte_Abfahrtszeit
+dummy = 0
 # Start- und Endknoten
 start_node = 'start'
 end_node = 'end'
@@ -591,7 +604,7 @@ G.add_node(start_node)
 G.add_node(end_node)
 
 # Füge Knoten für jeden Zeitpunkt für jeden Ladesäulentyp hinzu
-charging_types = ['A', 'B', 'C']
+charging_types = ['HPC', 'MCS', 'NCS']
 for typ in charging_types:
     for t in range(time_intervals):
         G.add_node(f"{typ}_{t}")
@@ -610,22 +623,14 @@ for typ in charging_types:
 for typ in charging_types:
     G.add_edge(f"{typ}_{time_intervals - 1}", end_node, weight=0, capacity=float('inf'))
 
-# Beispiel LKW-Daten (Ladesäulentyp, Ankunftszeitpunkt und Abfahrtszeitpunkt)
-trucks = [
-    ('A', 1, 3),
-    ('B', 3, 5),
-    ('C', 6, 9),
-    ('A', 4, 6),
-    ('B', 0, 2),
-    ('C', 3, 5)
-    # Fügen Sie hier weitere LKWs hinzu
-]
+print('Grundaufbau des Graphen steht!')
+
 
 # Füge Kanten für die LKWs hinzu
 for typ, start_time, end_time in trucks:
     G.add_edge(f"{typ}_{start_time}", f"{typ}_{end_time}", weight=0, capacity=1)
 
-
+print('LKW-Kanten wurden hinzugefügt!')
 
 
 # Funktion zur Berechnung des minimalen Kostenflusses
@@ -659,13 +664,29 @@ while True:
     if used_truck_edges >= threshold:
         break
     else:
+        print('Anzahl Ladesäulen von ' + str(flow) + ' war nicht ausreichend! (Ladeqoute: ' +str(round(used_truck_edges/len(trucks),4)*100) +' %)')
         flow +=1
 
 
+end_time = time.time()
+
+gebrauchte_zeit = end_time-start_time
 # Drucke den Fluss für jede Kante aus
 for u in flow_dict:
     for v in flow_dict[u]:
         flow_value = flow_dict[u][v]
         if flow_value > 0:
             print(f"Fluss von {u} nach {v}: {flow_value}")
-print('Der Flow ist: ' +str(flow))
+print('Anzahl Ladesäulen sind: ' +str(flow))
+print('Der Algorithmus hat ' + str(gebrauchte_zeit) + ' gebraucht!')
+
+
+
+
+
+
+
+dummy =0
+
+
+
