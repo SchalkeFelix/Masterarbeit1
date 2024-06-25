@@ -106,69 +106,60 @@ if __name__ == '__main__':
     ############################################## INPUT-DATEN ERZEUGEN ###############################################
     if neue_input_daten_erzeugen:
         dummy = 0
-        ladewahrscheinlichkeiten_hpc = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'H')
-        ladewahrscheinlichkeiten_mcs = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'I')
-        ladewahrscheinlichkeiten_ncs = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overnight stops', 'G')
+        ladewahrscheinlichkeiten_overday = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overday stops', 'G')
+        ladewahrscheinlichkeiten_overnight = read_excel_to_df('Ladewahrscheinlichkeiten.xlsx', 'overnight stops', 'G')
 
         if tage_clustern:
 
             # LKW-Daten mit Wahrscheinlichkeiten multiplizieren
-            lkw_hpc = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_hpc)
-            lkw_mcs = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_mcs)
-            lkw_ncs = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_ncs)
+            lkw_overday = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_overday)
+            lkw_overnight = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_overnight)
 
             # auf ganze LKW runden
-            lkw_hpc = rounded_dataframe_to_integer_trucks(lkw_hpc)
-            lkw_mcs = rounded_dataframe_to_integer_trucks(lkw_mcs)
-            lkw_ncs = rounded_dataframe_to_integer_trucks(lkw_ncs)
+            lkw_overday = rounded_dataframe_to_integer_trucks(lkw_overday)
+            lkw_overnight = rounded_dataframe_to_integer_trucks(lkw_overnight)
 
             # Kombinieren in einem Dataframe
-            dataframes = [lkw_hpc, lkw_mcs, lkw_ncs]
-            lkw_hpc.name = "hpc"
-            lkw_mcs.name = "mcs"
-            lkw_ncs.name = "ncs"
+            dataframes = [lkw_overnight, lkw_overday]
+            lkw_overday.name = "overday"
+            lkw_overnight.name = "overnight"
 
             # Output hier ist ein Dataframe mit Arrays für jeden LKW
             # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
             ladekurve = ladekurve()
             alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
-            index_list = lkw_hpc.index.tolist()
+            index_list = lkw_overday.index.tolist()
             alle_lkw.index = index_list
             alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
 
-            beispielwochen_plotten(lkw_hpc, anzahl_cluster_tage)
-            beispielwochen_plotten(lkw_mcs, anzahl_cluster_tage)
-            beispielwochen_plotten(lkw_ncs, anzahl_cluster_tage)
+            beispielwochen_plotten(lkw_overday, anzahl_cluster_tage)
+            beispielwochen_plotten(lkw_overnight, anzahl_cluster_tage)
 
 
         if wochen_clustern:
 
             # Wahrscheinlichkeiten auf eine Woche hochskalieren
-            ladewahrscheinlichkeiten_hpc_woche = pd.concat([ladewahrscheinlichkeiten_hpc] * 7, ignore_index=True)
-            ladewahrscheinlichkeiten_mcs_woche = pd.concat([ladewahrscheinlichkeiten_mcs] * 7, ignore_index=True)
-            ladewahrscheinlichkeiten_ncs_woche = pd.concat([ladewahrscheinlichkeiten_ncs] * 7, ignore_index=True)
+            ladewahrscheinlichkeiten_overday_woche = pd.concat([ladewahrscheinlichkeiten_overday] * 7, ignore_index=True)
+            ladewahrscheinlichkeiten_overnight_woche = pd.concat([ladewahrscheinlichkeiten_overnight] * 7, ignore_index=True)
 
             # LKW-Daten mit Wahrscheinlichkeiten multiplizieren
-            lkw_hpc_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_hpc_woche)
-            lkw_mcs_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_mcs_woche)
-            lkw_ncs_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_ncs_woche)
+            lkw_overday_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_overday_woche)
+            lkw_overnight_woche = multiply_probability_with_trafficdays(beispielwochen, ladewahrscheinlichkeiten_overnight_woche)
 
             # auf ganze LKW runden
-            lkw_hpc_woche = rounded_dataframe_to_integer_trucks(lkw_hpc_woche)
-            lkw_mcs_woche = rounded_dataframe_to_integer_trucks(lkw_mcs_woche)
-            lkw_ncs_woche = rounded_dataframe_to_integer_trucks(lkw_ncs_woche)
+            lkw_overday_woche = rounded_dataframe_to_integer_trucks(lkw_overday_woche)
+            lkw_overnight_woche = rounded_dataframe_to_integer_trucks(lkw_overnight_woche)
 
             # Kombinieren in einem Dataframe
-            dataframes = [lkw_ncs_woche, lkw_mcs_woche, lkw_ncs_woche]
-            lkw_hpc_woche.name = "hpc"
-            lkw_mcs_woche.name = "mcs"
-            lkw_ncs_woche.name = "ncs"
+            dataframes = [lkw_overday_woche, lkw_overnight_woche]
+            lkw_overday_woche.name = "overday"
+            lkw_overnight_woche.name = "overnight"
 
             # Output hier ist ein Dataframe mit Arrays für jeden LKW
             # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
             ladekurve = ladekurve()
             alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
-            index_list = lkw_hpc_woche.index.tolist()
+            index_list = lkw_overnight_woche.index.tolist()
             alle_lkw.index = index_list
             alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
 

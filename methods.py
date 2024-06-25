@@ -434,20 +434,10 @@ def rounded_dataframe_to_integer_trucks(df):
 
 def generate_entry(df_name, ladekurve, vergebene_ids):
     # Eintrag 1: Abhängig vom Namen des DataFrames
-    if "hpc" in df_name:
-        entry1 = 'HPC'
-        ladeleistung = ladeleistung_liste[1]
+    if "overday" in df_name:
         pausenzeit = 45
-    elif "mcs" in df_name:
-        entry1 = 'MCS'
-        ladeleistung = ladeleistung_liste[2]
-        pausenzeit = 45
-    elif "ncs" in df_name:
-        entry1 = 'NCS'
-        ladeleistung = ladeleistung_liste[0]
+    elif "overnight" in df_name:
         pausenzeit = 480
-    else:
-        entry1 = "Fehler"
 
     # Eintrag 2: Eine zufällige Zahl zwischen 0,05 und 0,3
     entry2 = round(random.uniform(untere_grenze_soc, obere_grenze_soc), 2)
@@ -458,14 +448,27 @@ def generate_entry(df_name, ladekurve, vergebene_ids):
     # Eintrag 4: geschätzte Ladezeit
     df_ladekurve = ladekurve
     spaltenname = entry3
-    soc = entry2
-    ladezeit = 0
 
+    Ladesäule_dict = {}
+    DUMMY = 0
+    for key, value in ladeleistung_liste.items():
+        dummy = 0
+        soc = entry2
+        ladezeit = 0
+        dummy = 0
+        while soc <= 0.8 :
+            relative_geladene_energie = (df_ladekurve[spaltenname][round(soc*100, 0)] * value * (timedelta/60)) / entry3
+            soc += relative_geladene_energie
+            ladezeit += timedelta
+            dummy = 0
+        differenz = abs(ladezeit-pausenzeit)
+        Ladesäule_dict[key] = differenz
+        dummy = 0
+    min_key = min(Ladesäule_dict, key=Ladesäule_dict.get)
+    min_value = Ladesäule_dict[min_key]
 
-    while soc <= 0.8 :
-        relative_geladene_energie = (df_ladekurve[spaltenname][round(soc*100, 0)] * ladeleistung * (timedelta/60)) / entry3
-        soc += relative_geladene_energie
-        ladezeit += timedelta
+    entry1 = min_key
+    pausenzeit = min_value
 
     if ladezeit <= pausenzeit:
         entry4 = pausenzeit
@@ -482,6 +485,8 @@ def generate_entry(df_name, ladekurve, vergebene_ids):
             vergebene_ids.add(entry6)
             break
 
+    x = [entry1, entry2, entry3, entry4, entry5, entry6]
+    dummy = 0
     return [entry1, entry2, entry3, entry4, entry5, entry6]
 
 def generate_lkw_in_array(dataframes, ladekurve):
@@ -496,6 +501,7 @@ def generate_lkw_in_array(dataframes, ladekurve):
             if row_idx < df.shape[0]*timedelta:
                 for col in df.columns:
                     value = df.at[row_idx, col]
+                    dummy = 0
                     arrays = [generate_entry(df.name, ladekurve, vergebene_id) for _ in range(value)]  # Hier wird df.name verwendet
                     row_data[col].extend(arrays)
         for col in row_data:
@@ -711,7 +717,7 @@ def lkw_in_tupelliste(alle_lkw):
                 if abfahrtszeit_int >= größte_abfahrtszeit:
                     größte_abfahrtszeit = abfahrtszeit_int
                 x = (ladesaeulentyp, int(ankunftszeit/timedelta), int(abfahrtszeit/timedelta), truck_id)
-                result.append((ladesaeulentyp, int(ankunftszeit/timedelta), int(abfahrtszeit/timedelta)))
+                result.append((ladesaeulentyp, int(ankunftszeit/timedelta), int(abfahrtszeit/timedelta), truck_id))
         pickle_datei = os.path.join(folder_path, 'Tupelliste_' + cluster_name + '.pkl')
         pickle_datei1 = os.path.join(folder_path, 'Tupelliste_' + cluster_name + '_groeßte_Abfahrt.pkl')
         with open(pickle_datei, 'wb') as f:
