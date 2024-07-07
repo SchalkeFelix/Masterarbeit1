@@ -175,9 +175,23 @@ if __name__ == '__main__':
     ############################################## ANZAHL LADESÄULEN OPTIMIERNEN #######################################
 
 
-    if neue_belegungspläne:
+    if optimierung_ladessäulenanzahl:
 
-        belegungspläne_array(alle_lkw)
+        alle_lkw = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+        lkw_in_tupelliste_tageweise(alle_lkw)
+        lkw_in_tupelliste_wochenweise(alle_lkw)
+
+        if wochenweise_optimieren:
+            ladesäulen_anzahl_bestimmen_wochenweise(['HPC'])
+            ladesäulen_anzahl_bestimmen_wochenweise(['NCS'])
+            ladesäulen_anzahl_bestimmen_wochenweise(['MCS'])
+
+        if clusterweise_optimieren:
+            for i in range(0, anzahl_cluster_tage):
+                ladesäulen_anzahl_bestimmen_tageweise(['HPC'], 'Cluster' + str(i))
+                ladesäulen_anzahl_bestimmen_tageweise(['NCS'], 'Cluster' + str(i))
+                ladesäulen_anzahl_bestimmen_tageweise(['MCS'], 'Cluster' + str(i))
+
     else:
        dummy = 0
 

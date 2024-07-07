@@ -14,6 +14,9 @@ import math
 import warnings
 import ast
 import pickle
+import networkx as nx
+from networkx.algorithms.flow import min_cost_flow
+from networkx.algorithms.flow import max_flow_min_cost
 
 
 
@@ -36,7 +39,7 @@ def read_lkw_data(csv_dateipfad=csv_dateipfad):
 
     # Daten für Säulendiagramm generieren (Breite: 1h, Höhe: stundenscharfer durchschnittlicher LKW-Verkehr in LKW/h)
     x_values = np.arange(hours_difference)
-    y_values = df['gesamt_LKW_R1'].to_numpy() * verkehrssteigerung
+    y_values = df['gesamt_LKW_R1'].to_numpy() * verkehrssteigerung * anteil_bev
     Maximum = max(y_values)
 
     # Polynomapproximation
@@ -449,7 +452,8 @@ def generate_entry(df_name, ladekurve, vergebene_ids):
     df_ladekurve = ladekurve
     spaltenname = entry3
 
-    Ladesäule_dict = {}
+    Diffenrenz_dict = {}
+    ladezeit_dict = {}
     DUMMY = 0
     for key, value in ladeleistung_liste.items():
         dummy = 0
@@ -462,19 +466,20 @@ def generate_entry(df_name, ladekurve, vergebene_ids):
             ladezeit += timedelta
             dummy = 0
         differenz = abs(ladezeit-pausenzeit)
-        Ladesäule_dict[key] = differenz
+        Diffenrenz_dict[key] = differenz
+        ladezeit_dict[key] = ladezeit
         dummy = 0
-    min_key = min(Ladesäule_dict, key=Ladesäule_dict.get)
-    min_value = Ladesäule_dict[min_key]
+    min_key = min(Diffenrenz_dict, key=Diffenrenz_dict.get)
+    min_value = Diffenrenz_dict[min_key]
 
     entry1 = min_key
-    pausenzeit = min_value
+    ladezeit1 = ladezeit_dict[min_key]
 
-    if ladezeit <= pausenzeit:
+    if ladezeit1 <= pausenzeit:
         entry4 = pausenzeit
         entry5 = 'Optimierungspotential'
-    elif ladezeit > pausenzeit:
-        entry4 = ladezeit
+    elif ladezeit1 > pausenzeit:
+        entry4 = ladezeit1
         entry5 = 'kein Optimierungspotential'
 
     dummy = 0
@@ -681,7 +686,7 @@ def belegungspläne_array(alle_lkw):
             with open(pickle_datei1, 'wb') as f:
                 pickle.dump(max_stations_needed, f)
 
-def lkw_in_tupelliste(alle_lkw):
+def lkw_in_tupelliste_tageweise(alle_lkw):
 
     df = alle_lkw
 
@@ -725,6 +730,53 @@ def lkw_in_tupelliste(alle_lkw):
         with open(pickle_datei1, 'wb') as f:
             pickle.dump(größte_abfahrtszeit, f)
 
+def lkw_in_tupelliste_wochenweise(alle_lkw):
+
+    df = alle_lkw
+
+    anzahl_spalten = df.shape[1]
+
+    # Define the folder path where the files will be saved
+    folder_path = 'Tupellisten_LKW'
+
+    # Create the folder if it does not exist
+    os.makedirs(folder_path, exist_ok=True)
+
+    # Dictionary zum Speichern der Ergebnisse
+
+    größte_abfahrtszeit = 0
+    result = []
+    # Über die Spalten iterieren
+
+    for l in range(0, anzahl_spalten):
+
+        cluster_name = 'Cluster' + str(l)
+        dummy = 0
+        for i in range(0, len(df) * timedelta, timedelta):
+            x = df[cluster_name][i]
+            data_list = ast.literal_eval(x)
+            print(i)
+            for j in data_list:
+                ladesaeulentyp = j[0]
+                ladezeit = j[3]
+                truck_id = j[5]
+                dummy = 0
+
+                ankunftszeit = int(i+(1440*l))
+                abfahrtszeit = int(i + ladezeit+(1440*l))
+                abfahrtszeit_int = int(abfahrtszeit/timedelta)
+                dummy = 0
+                if abfahrtszeit_int >= größte_abfahrtszeit:
+                    größte_abfahrtszeit = abfahrtszeit_int
+                x = (ladesaeulentyp, int(ankunftszeit/timedelta), int(abfahrtszeit/timedelta), truck_id)
+                result.append((ladesaeulentyp, int(ankunftszeit/timedelta), int(abfahrtszeit/timedelta), truck_id))
+    pickle_datei = os.path.join(folder_path, 'Tupelliste_Woche.pkl')
+    pickle_datei1 = os.path.join(folder_path, 'Tupelliste_Woche_groeßte_Abfahrt.pkl')
+    with open(pickle_datei, 'wb') as f:
+        pickle.dump(result, f)
+    with open(pickle_datei1, 'wb') as f:
+        pickle.dump(größte_abfahrtszeit, f)
+
 def tupelliste_sortieren(cluster_verteilung_kumuliert):
     k = 0
     result = []
@@ -743,3 +795,293 @@ def tupelliste_sortieren(cluster_verteilung_kumuliert):
         k = cluster_verteilung_kumuliert[i]
         print('Cluster ' + str(i) + ' wurde hinzugefügt!' )
     return result
+
+def ladesäulen_anzahl_bestimmen_wochenweise(ladesäulentyp):
+
+    counts = {
+        'NCS': 0,
+        'HPC': 0,
+        'MCS': 0
+    }
+    lkw_gesamt = 0
+    df = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+    for l in range(0, 6):
+        for i in range(0, len(df) * timedelta, timedelta):
+            x = df['Cluster' + str(l)][i]
+            data_list = ast.literal_eval(x)
+            dummy = 0
+            for j in data_list:
+                typ = j[0]
+                if typ in counts:
+                    counts[typ] += 1
+                lkw_gesamt += 1
+                dummy = 0
+
+    print(counts)
+    print(lkw_gesamt)
+    with open('Tupellisten_LKW/Tupelliste_Woche.pkl', 'rb') as file:
+        trucks1 = pickle.load(file)
+    with open('Tupellisten_LKW/Tupelliste_Woche_groeßte_Abfahrt.pkl', 'rb') as file:
+        größte_Abfahrtszeit = pickle.load(file)
+
+    weights = {
+        "NCS": 0,  # Gewicht für Typ 1
+        "MCS": 0,  # Gewicht für Typ 2
+        "HPC": 0}
+    trucks = []
+    for tupel in trucks1:
+        typ, ankunftszeit, abfahrtszeit, truck_id = tupel
+        if typ == ladesäulentyp[0]:
+            x = (typ, ankunftszeit, abfahrtszeit, truck_id)
+            trucks.append(x)
+
+    print('Liste wurde aussortiert!')
+
+    # Initialisieren des Graphen
+    G = nx.DiGraph()
+
+    # Anzahl der Zeitabschnitte (5 Minuten Intervalle in einem Tag)
+    time_intervals = größte_Abfahrtszeit
+    dummy = 0
+
+    # Start- und Endknoten
+    start_node = 'start'
+    end_node = 'end'
+
+    # Füge den Start- und Endknoten hinzu
+    G.add_node(start_node)
+    G.add_node(end_node)
+
+    # Füge Knoten für jeden Zeitpunkt für jeden Ladesäulentyp hinzu
+    charging_types = ladesäulentyp
+    for typ in charging_types:
+        for t in range(time_intervals):
+            G.add_node(f"{typ}_{t}")
+
+    # Füge Kanten mit hohen Kosten zwischen aufeinanderfolgenden Zeitknoten für jeden Ladesäulentyp hinzu
+    low_cost = 0  # Sehr niedrige Kosten
+    high_cost = 10e6
+    for typ in charging_types:
+        for t in range(time_intervals - 1):
+            weight = weights[typ]
+            G.add_edge(f"{typ}_{t}", f"{typ}_{t + 1}", weight=high_cost, capacity=float('inf'))
+
+    # Füge Kanten von Start zu den ersten Zeitknoten jedes Ladesäulentyps hinzu
+    for typ in charging_types:
+        G.add_edge(start_node, f"{typ}_0", weight=0, capacity=float('inf'))
+
+    # Füge Kanten von den letzten Zeitknoten jedes Ladesäulentyps zum Endknoten hinzu
+    for typ in charging_types:
+        G.add_edge(f"{typ}_{time_intervals - 1}", end_node, weight=0, capacity=float('inf'))
+
+    print('Grundaufbau des Graphen steht!')
+
+    # Füge Kanten für die LKWs hinzu
+    truck_edges = {}
+    for typ, start_time, end_time, truck_id in trucks:
+        edge = (f"{typ}_{start_time}", f"{typ}_{end_time}")
+        G.add_edge(*edge, weight=0, capacity=1)
+        truck_edges[edge] = truck_id
+
+    print('LKW-Kanten wurden hinzugefügt!')
+
+    # Funktion zur Berechnung des minimalen Kostenflusses
+    def calculate_min_cost_flow(graph, required_flow):
+        # Füge eine Superquelle und ein Superziel hinzu
+        super_source = 'super_source'
+        super_sink = 'super_sink'
+        graph.add_node(super_source)
+        graph.add_node(super_sink)
+
+        # Verbinde die Superquelle mit dem Startknoten
+        graph.add_edge(super_source, start_node, weight=0, capacity=required_flow)
+
+        # Verbinde das Endknoten mit dem Superziel
+        graph.add_edge(end_node, super_sink, weight=0, capacity=required_flow)
+
+        # Berechne den maximalen Fluss mit minimalen Kosten
+        flow_dict = max_flow_min_cost(graph, super_source, super_sink)
+
+        # Entferne die Superquelle und das Superziel
+        graph.remove_node(super_source)
+        graph.remove_node(super_sink)
+
+        return flow_dict
+
+    flow = 1
+    while True:
+        flow_dict = calculate_min_cost_flow(G, flow)
+        used_truck_edges = sum(
+            flow_dict[f"{typ}_{start_time}"][f"{typ}_{end_time}"] for typ, start_time, end_time, _ in trucks)
+        threshold = 0.8 * counts[ladesäulentyp[0]]
+        if used_truck_edges >= threshold:
+            break
+        else:
+            print('Anzahl Ladesäulen von ' + str(flow) + ' war nicht ausreichend! (Ladequote: ' + str(
+                round(used_truck_edges / counts[ladesäulentyp[0]], 4) * 100) + ' %)')
+
+            flow += 1
+
+    # Drucke den Fluss für jede Kante aus
+    loaded_trucks = []
+    for u in flow_dict:
+        for v in flow_dict[u]:
+            flow_value = flow_dict[u][v]
+            if flow_value > 0:
+                print(f"Fluss von {u} nach {v}: {flow_value}")
+                if (u, v) in truck_edges and flow_value > 0:
+                    loaded_trucks.append(truck_edges[(u, v)])
+
+    print('Anzahl Ladesäulen sind: ' + str(flow))
+    print('Geladene LKWs:', loaded_trucks)
+
+    folder_path = 'Geladene_LKW'
+    os.makedirs(folder_path, exist_ok=True)
+    pickle_datei2 = os.path.join(folder_path, 'geladene_LKW_'+ ladesäulentyp[0] + '_wochenweise.pkl')
+    with open(pickle_datei2, 'wb') as f:
+        pickle.dump(loaded_trucks, f)
+
+def ladesäulen_anzahl_bestimmen_tageweise(ladesäulentyp, clustername):
+
+    counts = {
+        'NCS': 0,
+        'HPC': 0,
+        'MCS': 0
+    }
+    lkw_gesamt = 0
+    df = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+    for i in range(0, len(df) * timedelta, timedelta):
+        x = df[clustername][i]
+        data_list = ast.literal_eval(x)
+        dummy = 0
+        for j in data_list:
+            typ = j[0]
+            if typ in counts:
+                counts[typ] += 1
+            lkw_gesamt += 1
+            dummy = 0
+
+    print(counts)
+    print(lkw_gesamt)
+    with open('Tupellisten_LKW/Tupelliste_' + clustername + '.pkl', 'rb') as file:
+        trucks1 = pickle.load(file)
+    with open('Tupellisten_LKW/Tupelliste_'+ clustername +'_groeßte_Abfahrt.pkl', 'rb') as file:
+        größte_Abfahrtszeit = pickle.load(file)
+
+    weights = {
+        "NCS": 0,  # Gewicht für Typ 1
+        "MCS": 0,  # Gewicht für Typ 2
+        "HPC": 0}
+    trucks = []
+    for tupel in trucks1:
+        typ, ankunftszeit, abfahrtszeit, truck_id = tupel
+        if typ == ladesäulentyp[0]:
+            x = (typ, ankunftszeit, abfahrtszeit, truck_id)
+            trucks.append(x)
+
+    print('Liste wurde aussortiert!')
+
+    # Initialisieren des Graphen
+    G = nx.DiGraph()
+
+    # Anzahl der Zeitabschnitte (5 Minuten Intervalle in einem Tag)
+    time_intervals = größte_Abfahrtszeit
+    dummy = 0
+
+    # Start- und Endknoten
+    start_node = 'start'
+    end_node = 'end'
+
+    # Füge den Start- und Endknoten hinzu
+    G.add_node(start_node)
+    G.add_node(end_node)
+
+    # Füge Knoten für jeden Zeitpunkt für jeden Ladesäulentyp hinzu
+    charging_types = ladesäulentyp
+    for typ in charging_types:
+        for t in range(time_intervals):
+            G.add_node(f"{typ}_{t}")
+
+    # Füge Kanten mit hohen Kosten zwischen aufeinanderfolgenden Zeitknoten für jeden Ladesäulentyp hinzu
+    low_cost = 0  # Sehr niedrige Kosten
+    high_cost = 10e6
+    for typ in charging_types:
+        for t in range(time_intervals - 1):
+            weight = weights[typ]
+            G.add_edge(f"{typ}_{t}", f"{typ}_{t + 1}", weight=high_cost, capacity=float('inf'))
+
+    # Füge Kanten von Start zu den ersten Zeitknoten jedes Ladesäulentyps hinzu
+    for typ in charging_types:
+        G.add_edge(start_node, f"{typ}_0", weight=0, capacity=float('inf'))
+
+    # Füge Kanten von den letzten Zeitknoten jedes Ladesäulentyps zum Endknoten hinzu
+    for typ in charging_types:
+        G.add_edge(f"{typ}_{time_intervals - 1}", end_node, weight=0, capacity=float('inf'))
+
+    print('Grundaufbau des Graphen steht!')
+
+    # Füge Kanten für die LKWs hinzu
+    truck_edges = {}
+    for typ, start_time, end_time, truck_id in trucks:
+        edge = (f"{typ}_{start_time}", f"{typ}_{end_time}")
+        G.add_edge(*edge, weight=0, capacity=1)
+        truck_edges[edge] = truck_id
+
+    print('LKW-Kanten wurden hinzugefügt!')
+
+    # Funktion zur Berechnung des minimalen Kostenflusses
+    def calculate_min_cost_flow(graph, required_flow):
+        # Füge eine Superquelle und ein Superziel hinzu
+        super_source = 'super_source'
+        super_sink = 'super_sink'
+        graph.add_node(super_source)
+        graph.add_node(super_sink)
+
+        # Verbinde die Superquelle mit dem Startknoten
+        graph.add_edge(super_source, start_node, weight=0, capacity=required_flow)
+
+        # Verbinde das Endknoten mit dem Superziel
+        graph.add_edge(end_node, super_sink, weight=0, capacity=required_flow)
+
+        # Berechne den maximalen Fluss mit minimalen Kosten
+        flow_dict = max_flow_min_cost(graph, super_source, super_sink)
+
+        # Entferne die Superquelle und das Superziel
+        graph.remove_node(super_source)
+        graph.remove_node(super_sink)
+
+        return flow_dict
+
+    flow = 1
+    while True:
+        flow_dict = calculate_min_cost_flow(G, flow)
+        used_truck_edges = sum(
+            flow_dict[f"{typ}_{start_time}"][f"{typ}_{end_time}"] for typ, start_time, end_time, _ in trucks)
+        threshold = 0.8 * counts[ladesäulentyp[0]]
+        if used_truck_edges >= threshold:
+            break
+        else:
+            print('Anzahl Ladesäulen von ' + str(flow) + ' war nicht ausreichend! (Ladequote: ' + str(
+                round(used_truck_edges / counts[ladesäulentyp[0]], 4) * 100) + ' %)')
+
+            flow += 1
+
+    # Drucke den Fluss für jede Kante aus
+    loaded_trucks = []
+    for u in flow_dict:
+        for v in flow_dict[u]:
+            flow_value = flow_dict[u][v]
+            if flow_value > 0:
+                print(f"Fluss von {u} nach {v}: {flow_value}")
+                if (u, v) in truck_edges and flow_value > 0:
+                    loaded_trucks.append(truck_edges[(u, v)])
+
+    print('Anzahl Ladesäulen sind: ' + str(flow))
+    print('Geladene LKWs:', loaded_trucks)
+
+    folder_path = 'Geladene_LKW'
+    os.makedirs(folder_path, exist_ok=True)
+    pickle_datei2 = os.path.join(folder_path, 'geladene_LKW_'+ ladesäulentyp[0] + '_' + clustername + '_tageweise.pkl')
+    with open(pickle_datei2, 'wb') as f:
+        pickle.dump(loaded_trucks, f)
+

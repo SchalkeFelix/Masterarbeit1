@@ -2,9 +2,6 @@ start_date = 210101
 end_date = 211231
 anzahl_simulationen = 10
 
-anteil_bev = 0.8374
-tankwahrscheinlichkeit = 0.05
-verkehrssteigerung = 1.3355
 
 max_akkustand = 80  # relative capacity when leaving the charging station
 

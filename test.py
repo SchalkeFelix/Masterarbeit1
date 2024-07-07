@@ -574,7 +574,29 @@ for lkw in data:
 
 print(zuordnung)
 """
+"""
 
+counts = {
+    'NCS': 0,
+    'HPC': 0,
+    'MCS': 0
+}
+lkw_gesamt = 0
+df= pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+for l in range(0,6):
+    for i in range(0, len(df) * timedelta, timedelta):
+        x = df['Cluster'+str(l)][i]
+        data_list = ast.literal_eval(x)
+        dummy = 0
+        for j in data_list:
+            typ = j[0]
+            if typ in counts:
+                counts[typ] += 1
+            lkw_gesamt += 1
+            dummy = 0
+
+print(counts)
+print(lkw_gesamt)
 
 import networkx as nx
 from networkx.algorithms.flow import min_cost_flow
@@ -582,15 +604,18 @@ from networkx.algorithms.flow import max_flow_min_cost
 
 
 alle_lkw = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
-lkw_in_tupelliste(alle_lkw)
+lkw_in_tupelliste_wochenweise(alle_lkw)
 
-with open('Tupellisten_LKW/Tupelliste_Cluster0.pkl', 'rb') as file:
+with open('Tupellisten_LKW/Tupelliste_Woche.pkl', 'rb') as file:
     trucks = pickle.load(file)
-with open('Tupellisten_LKW/Tupelliste_Cluster0_groeßte_Abfahrt.pkl', 'rb') as file:
+with open('Tupellisten_LKW/Tupelliste_Woche_groeßte_Abfahrt.pkl', 'rb') as file:
     größte_Abfahrtszeit = pickle.load(file)
-dummy = 0
 
 
+weights =  {
+    "NCS": 0,  # Gewicht für Typ 1
+    "MCS": 0,  # Gewicht für Typ 2
+    "HPC": 0}
 # Initialisieren des Graphen
 G = nx.DiGraph()
 
@@ -613,10 +638,11 @@ for typ in charging_types:
         G.add_node(f"{typ}_{t}")
 
 # Füge Kanten mit hohen Kosten zwischen aufeinanderfolgenden Zeitknoten für jeden Ladesäulentyp hinzu
-high_cost = 1e6  # Sehr hohe Kosten
+low_cost = 0  # Sehr hohe Kosten
 for typ in charging_types:
     for t in range(time_intervals - 1):
-        G.add_edge(f"{typ}_{t}", f"{typ}_{t + 1}", weight=high_cost, capacity=float('inf'))
+        weight = weights[typ]
+        G.add_edge(f"{typ}_{t}", f"{typ}_{t + 1}", weight=low_cost, capacity=float('inf'))
 
 # Füge Kanten von Start zu den ersten Zeitknoten jedes Ladesäulentyps hinzu
 for typ in charging_types:
@@ -632,7 +658,7 @@ print('Grundaufbau des Graphen steht!')
 truck_edges = {}
 for typ, start_time, end_time, truck_id in trucks:
     edge = (f"{typ}_{start_time}", f"{typ}_{end_time}")
-    G.add_edge(*edge, weight=0, capacity=1)
+    G.add_edge(*edge, weight=-1, capacity=1)
     truck_edges[edge] = truck_id
 
 print('LKW-Kanten wurden hinzugefügt!')
@@ -669,6 +695,10 @@ while True:
         break
     else:
         print('Anzahl Ladesäulen von ' + str(flow) + ' war nicht ausreichend! (Ladequote: ' + str(round(used_truck_edges/len(trucks),4)*100) + ' %)')
+        print('HPC:' + str(flow_dict[start_node]['HPC_0']))
+        print('MCS:' + str(flow_dict[start_node]['MCS_0']))
+        print('NCS:' + str(flow_dict[start_node]['NCS_0']))
+
         flow += 1
 
 # Drucke den Fluss für jede Kante aus
@@ -694,3 +724,29 @@ dummy =0
 
 
 
+counts = {
+    'NCS': 0,
+    'HPC': 0,
+    'MCS': 0
+}
+lkw_gesamt = 0
+df= pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+
+for i in range(0, len(df) * timedelta, timedelta):
+    x = df['Cluster0'][i]
+    data_list = ast.literal_eval(x)
+    dummy = 0
+    for j in data_list:
+        typ = j[0]
+        if typ in counts:
+            counts[typ] += 1
+        lkw_gesamt += 1
+        dummy = 0
+
+print(counts)
+print(lkw_gesamt)
+"""
+
+alle_lkw = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
+lkw_in_tupelliste_wochenweise(alle_lkw)
+ladesäulen_anzahl_bestimmen_tageweise(['MCS'], 'Cluster0')
