@@ -192,7 +192,61 @@ if __name__ == '__main__':
                 ladesäulen_anzahl_bestimmen_tageweise(['NCS'], 'Cluster' + str(i))
                 ladesäulen_anzahl_bestimmen_tageweise(['MCS'], 'Cluster' + str(i))
 
+        with open('Geladene_LKW/geladene_LKW_HPC_wochenweise.pkl', 'rb') as file:
+            geladene_lkw_hpc = pickle.load(file)
+        with open('Geladene_LKW/geladene_LKW_MCS_wochenweise.pkl', 'rb') as file:
+            geladene_lkw_mcs = pickle.load(file)
+        with open('Geladene_LKW/geladene_LKW_NCS_wochenweise.pkl', 'rb') as file:
+            geladene_lkw_ncs = pickle.load(file)
+
+
+        print('Bestimmung der Anzahl der Ladesäulen abgeschlossen!')
     else:
-       dummy = 0
 
+        with open('Geladene_LKW/geladene_LKW_HPC_wochenweise.pkl', 'rb') as file:
+            geladene_lkw_hpc = pickle.load(file)
+        with open('Geladene_LKW/geladene_LKW_MCS_wochenweise.pkl', 'rb') as file:
+            geladene_lkw_mcs = pickle.load(file)
+        with open('Geladene_LKW/geladene_LKW_NCS_wochenweise.pkl', 'rb') as file:
+            geladene_lkw_ncs = pickle.load(file)
 
+        print('Bestimmung der Anzahl der Ladesäulen abgeschlossen!')
+
+    ######################################### ANZAHL LADESÄULEN OPTIMIERNEN ENDE #######################################
+
+    ################################################# LADEMANAGEMENT ###################################################
+
+    alle_geladenen_lkw = geladene_lkw_hpc + geladene_lkw_ncs + geladene_lkw_mcs
+    counter = 0
+    indices = list(range(0, 2001, timedelta))
+    df_ladekurve = ladekurve()
+    result_df_lastkurve = pd.DataFrame(0, columns=['Last_Cluster0', 'Last_Cluster1', 'Last_Cluster2', 'Last_Cluster3', 'Last_Cluster4', 'Last_Cluster5', 'Last_Cluster6'], index = indices)
+    for element in alle_geladenen_lkw:
+        anzahl_spalten = alle_lkw.shape[1]
+        for l in range(0, anzahl_spalten):
+            cluster_name = 'Cluster' + str(l)
+            for i in range(0, len(alle_lkw) * timedelta, timedelta):
+                x = alle_lkw[cluster_name][i]
+                data_list = ast.literal_eval(x)
+                dummy = 0
+                for j in data_list:
+                    if element == j[5]:
+                        if j[4] == 'kein Optimierungspotential' :
+                            soc = j[1]
+                            kapazität = j[2]
+                            timestep = i
+                            ladeleistung = ladeleistung_liste[j[0]]
+
+                            while soc <= 0.8:
+                                relative_geladene_energie = (df_ladekurve[kapazität][round(soc * 100, 0)] * ladeleistung * (
+                                            timedelta / 60)) / kapazität
+                                soc += relative_geladene_energie
+                                alter_wert = result_df_lastkurve.at[timestep, 'Last_Cluster'+str(l)]
+                                neuer_wert = alter_wert + (df_ladekurve[kapazität][round(soc * 100, 0)]*ladeleistung)
+                                result_df_lastkurve.at[timestep, 'Last_Cluster'+str(l)] = neuer_wert
+                                dummy = 0
+                                timestep += timedelta
+
+        counter += 1
+        print(counter/len(alle_geladenen_lkw))
+    dummy = 0

@@ -751,7 +751,6 @@ def lkw_in_tupelliste_wochenweise(alle_lkw):
     for l in range(0, anzahl_spalten):
 
         cluster_name = 'Cluster' + str(l)
-        dummy = 0
         for i in range(0, len(df) * timedelta, timedelta):
             x = df[cluster_name][i]
             data_list = ast.literal_eval(x)
@@ -864,7 +863,7 @@ def ladesäulen_anzahl_bestimmen_wochenweise(ladesäulentyp):
     for typ in charging_types:
         for t in range(time_intervals - 1):
             weight = weights[typ]
-            G.add_edge(f"{typ}_{t}", f"{typ}_{t + 1}", weight=high_cost, capacity=float('inf'))
+            G.add_edge(f"{typ}_{t}", f"{typ}_{t + 1}", weight=low_cost, capacity=float('inf'))
 
     # Füge Kanten von Start zu den ersten Zeitknoten jedes Ladesäulentyps hinzu
     for typ in charging_types:
@@ -880,7 +879,7 @@ def ladesäulen_anzahl_bestimmen_wochenweise(ladesäulentyp):
     truck_edges = {}
     for typ, start_time, end_time, truck_id in trucks:
         edge = (f"{typ}_{start_time}", f"{typ}_{end_time}")
-        G.add_edge(*edge, weight=0, capacity=1)
+        G.add_edge(*edge, weight=-1, capacity=1)
         truck_edges[edge] = truck_id
 
     print('LKW-Kanten wurden hinzugefügt!')

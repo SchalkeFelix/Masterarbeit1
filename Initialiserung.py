@@ -7,7 +7,7 @@ anzahl_cluster_wochen = 4                               # Anzahl der Cluster fü
 anzahl_cluster_tage = 7                                 # Anzahl der Cluster für Tageclusterung
 csv_dateiname = 'zst5651_2021.csv'                      # Dateiname der CSV-Datei
 timedelta = 5                                           # Zeitauflösung in Minuten
-anteil_bev = 0.80
+anteil_bev = 0.049
 verkehrssteigerung =  1.072
 
 
@@ -21,7 +21,7 @@ ladeleistung_liste = {'NCS': 150, 'HPC': 350, 'MCS': 1000}                   # L
 
 #### Optimierung Anzahl Ladesäulen ####
 investment = {'HPC': 150000, 'MCS': 350000, 'NCS': 50000}
-optimierung_ladessäulenanzahl = True
+optimierung_ladessäulenanzahl = False
 wochenweise_optimieren = True
 clusterweise_optimieren = False
 

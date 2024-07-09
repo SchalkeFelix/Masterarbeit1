@@ -745,8 +745,33 @@ for i in range(0, len(df) * timedelta, timedelta):
 
 print(counts)
 print(lkw_gesamt)
-"""
+
 
 alle_lkw = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
 lkw_in_tupelliste_wochenweise(alle_lkw)
 ladesäulen_anzahl_bestimmen_tageweise(['MCS'], 'Cluster0')
+"""
+import pandas as pd
+
+# Beispiel-Indexliste
+index_liste = [0, 1, 2, 3, 4]
+
+# DataFrame erstellen
+df = pd.DataFrame(0, index=index_liste, columns=['Werte'])
+
+# Ausgabe des ursprünglichen DataFrames
+print("Ursprünglicher DataFrame:")
+print(df)
+
+# Beispiel: Wert im DataFrame ändern
+# Zugriff auf den Wert an Index 2 und Spalte 'Werte'
+alter_wert = df.at[2, 'Werte']
+neuer_wert = alter_wert + 5
+
+# Den neuen Wert im DataFrame speichern
+df.at[2, 'Werte'] = neuer_wert
+
+# Ausgabe des aktualisierten DataFrames
+print("\nAktualisierter DataFrame:")
+print(df)
+
