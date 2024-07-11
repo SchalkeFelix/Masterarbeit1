@@ -1084,3 +1084,13 @@ def ladesäulen_anzahl_bestimmen_tageweise(ladesäulentyp, clustername):
     with open(pickle_datei2, 'wb') as f:
         pickle.dump(loaded_trucks, f)
 
+def lastgang_plotten (beispielwochen, anzahl_cluster):
+
+    plt.figure(figsize=(10, 5))  # Größe des Diagramms festlegen
+
+    for i in range(0, anzahl_cluster):
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+        plt.plot(beispielwochen.index, beispielwochen['Last_Cluster' + str(i)], label='Umsatz', color=colors[i], linestyle='solid')
+
+    plt.show()
+

@@ -25,4 +25,6 @@ optimierung_ladessäulenanzahl = False
 wochenweise_optimieren = True
 clusterweise_optimieren = False
 
+#### Lademanagement ####
+lademagement = 'Durchschnitt bilden'                  # wähle aus: 'kein Lademanagement', 'Durchschnitt bilden'
 

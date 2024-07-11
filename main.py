@@ -218,6 +218,9 @@ if __name__ == '__main__':
 
     alle_geladenen_lkw = geladene_lkw_hpc + geladene_lkw_ncs + geladene_lkw_mcs
     counter = 0
+    max_durchschnitts_leistung_hpc = 0
+    max_durchschnitts_leistung_mcs = 0
+    max_durchschnitts_leistung_ncs = 0
     indices = list(range(0, 2001, timedelta))
     df_ladekurve = ladekurve()
     result_df_lastkurve = pd.DataFrame(0, columns=['Last_Cluster0', 'Last_Cluster1', 'Last_Cluster2', 'Last_Cluster3', 'Last_Cluster4', 'Last_Cluster5', 'Last_Cluster6'], index = indices)
@@ -246,7 +249,55 @@ if __name__ == '__main__':
                                 result_df_lastkurve.at[timestep, 'Last_Cluster'+str(l)] = neuer_wert
                                 dummy = 0
                                 timestep += timedelta
+                        if j[4] == 'Optimierungspotential':
+                            if lademagement == 'kein Lademanagement':
+                                soc = j[1]
+                                kapazität = j[2]
+                                timestep = i
+                                ladeleistung = ladeleistung_liste[j[0]]
+
+                                while soc <= 0.8:
+                                    relative_geladene_energie = (df_ladekurve[kapazität][
+                                                                     round(soc * 100, 0)] * ladeleistung * (
+                                                                         timedelta / 60)) / kapazität
+                                    soc += relative_geladene_energie
+                                    alter_wert = result_df_lastkurve.at[timestep, 'Last_Cluster' + str(l)]
+                                    neuer_wert = alter_wert + (
+                                                df_ladekurve[kapazität][round(soc * 100, 0)] * ladeleistung)
+                                    result_df_lastkurve.at[timestep, 'Last_Cluster' + str(l)] = neuer_wert
+                                    dummy = 0
+                                    timestep += timedelta
+                            if lademagement == 'Durchschnitt bilden':
+                                soc = j[1]
+                                kapazität = j[2]
+                                timestep = i
+                                zeit = 0
+                                benötigte_energie = (0.8 - soc) * kapazität
+                                ladezeit = j[3]
+                                durchschnitts_leistung = benötigte_energie * (60/ladezeit)    # timedelta kürzt sich raus
+
+                                if j[0] == 'HPC':
+                                    if durchschnitts_leistung > max_durchschnitts_leistung_hpc:
+                                        max_durchschnitts_leistung_hpc = durchschnitts_leistung
+
+                                if j[0] == 'MCS':
+                                    if durchschnitts_leistung > max_durchschnitts_leistung_mcs:
+                                        max_durchschnitts_leistung_mcs = durchschnitts_leistung
+
+                                if j[0] == 'NCS':
+                                    if durchschnitts_leistung > max_durchschnitts_leistung_ncs:
+                                        max_durchschnitts_leistung_ncs = durchschnitts_leistung
+
+                                while zeit < ladezeit:
+                                    alter_wert = result_df_lastkurve.at[timestep, 'Last_Cluster' + str(l)]
+                                    neuer_wert = alter_wert + durchschnitts_leistung
+                                    result_df_lastkurve.at[timestep, 'Last_Cluster' + str(l)] = neuer_wert
+                                    timestep += timedelta
+                                    zeit += timedelta
+                                    dummy = 0
+
 
         counter += 1
-        print(counter/len(alle_geladenen_lkw))
+        print('Geschafft wurden: ' + str(round(counter/len(alle_geladenen_lkw)*100, 2)) + ' %')
+    lastgang_plotten(result_df_lastkurve, anzahl_cluster_tage)
     dummy = 0
