@@ -574,204 +574,71 @@ for lkw in data:
 
 print(zuordnung)
 """
-"""
+from pulp import LpMinimize, LpProblem, LpVariable, lpSum
 
-counts = {
-    'NCS': 0,
-    'HPC': 0,
-    'MCS': 0
-}
-lkw_gesamt = 0
-df= pd.read_excel('LKW_INPUT.xlsx', index_col=0)
-for l in range(0,6):
-    for i in range(0, len(df) * timedelta, timedelta):
-        x = df['Cluster'+str(l)][i]
-        data_list = ast.literal_eval(x)
-        dummy = 0
-        for j in data_list:
-            typ = j[0]
-            if typ in counts:
-                counts[typ] += 1
-            lkw_gesamt += 1
-            dummy = 0
+# Beispiel LKW-Liste
+trucks = [
+    (1, 4, 10, 'A'),  # (Ankunftszeit, Abfahrtszeit, benötigte Leistung)
+    (2, 6, 10, 'B'),
+]
+leist = {'A': 4, 'B': 4}
 
-print(counts)
-print(lkw_gesamt)
+# Gesamtdauer basierend auf den Ankunfts- und Abfahrtszeiten aller LKWs
+arrival_times = [truck[0] for truck in trucks]
+departure_times = [truck[1] for truck in trucks]
+T_max = max(departure_times)-1 # Das maximale Abfahrtszeitpunkt
 
-import networkx as nx
-from networkx.algorithms.flow import min_cost_flow
-from networkx.algorithms.flow import max_flow_min_cost
+# Erstellen des LP-Problems
+prob = LpProblem("Truck_Minimization", LpMinimize)
 
+# Erstellen der Variablen x_t und x_max
+x = LpVariable.dicts("x", range(1, T_max + 1), lowBound=0, cat='Continuous')
+x_max = LpVariable("x_max", lowBound=0, cat='Continuous')
 
-alle_lkw = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
-lkw_in_tupelliste_wochenweise(alle_lkw)
+# Erstellen der Variablen y_i für jeden LKW
+y = {}
+for i, truck in enumerate(trucks):
+    arrival_time, departure_time, power, typ = truck
+    y[i] = LpVariable.dicts(f"y_{i}", range(arrival_time, departure_time), lowBound=0, cat='Continuous')
 
-with open('Tupellisten_LKW/Tupelliste_Woche.pkl', 'rb') as file:
-    trucks = pickle.load(file)
-with open('Tupellisten_LKW/Tupelliste_Woche_groeßte_Abfahrt.pkl', 'rb') as file:
-    größte_Abfahrtszeit = pickle.load(file)
+# Zielfunktion: Minimierung von x_max
+prob += x_max, "x_max_minimization"
 
+# Nebenbedingungen
+for i, truck in enumerate(trucks):
+    arrival_time, departure_time, power, typ = truck
+    prob += lpSum(y[i][t] for t in range(arrival_time, departure_time)) == power, f"Power_requirement_truck_{i}"
+    max_leistung = leist[typ]
+    for t in range(arrival_time, departure_time):
+        prob += y[i][t] <= max_leistung
 
-weights =  {
-    "NCS": 0,  # Gewicht für Typ 1
-    "MCS": 0,  # Gewicht für Typ 2
-    "HPC": 0}
-# Initialisieren des Graphen
-G = nx.DiGraph()
+# Nebenbedingungen zur Zuordnung der y_i zu x_t
+for t in range(1, T_max + 1):
+    related_y = []
+    for i, truck in enumerate(trucks):
+        arrival_time, departure_time, power, typ = truck
+        if arrival_time <= t <= departure_time-1:
+            related_y.append(y[i][t])
+    prob += x[t] == lpSum(related_y), f"Time_step_assignment_{t}"
 
-# Anzahl der Zeitabschnitte (5 Minuten Intervalle in einem Tag)
-time_intervals = größte_Abfahrtszeit
-dummy = 0
+# Nebenbedingungen für x_t <= x_max
+for t in range(1, T_max + 1):
+    prob += x[t] <= x_max, f"Time_step_limit_{t}"
 
-# Start- und Endknoten
-start_node = 'start'
-end_node = 'end'
+# Solver aufrufen und Lösung finden
+prob.solve()
 
-# Füge den Start- und Endknoten hinzu
-G.add_node(start_node)
-G.add_node(end_node)
+# Ergebnis ausgeben
+print("Optimale Lösung gefunden:")
+for t in range(1, T_max + 1):
+    print(f"x_{t} = {x[t].varValue}")
 
-# Füge Knoten für jeden Zeitpunkt für jeden Ladesäulentyp hinzu
-charging_types = ['HPC', 'MCS', 'NCS']
-for typ in charging_types:
-    for t in range(time_intervals):
-        G.add_node(f"{typ}_{t}")
+print(f"Minimaler x_max: {x_max.varValue}")
 
-# Füge Kanten mit hohen Kosten zwischen aufeinanderfolgenden Zeitknoten für jeden Ladesäulentyp hinzu
-low_cost = 0  # Sehr hohe Kosten
-for typ in charging_types:
-    for t in range(time_intervals - 1):
-        weight = weights[typ]
-        G.add_edge(f"{typ}_{t}", f"{typ}_{t + 1}", weight=low_cost, capacity=float('inf'))
-
-# Füge Kanten von Start zu den ersten Zeitknoten jedes Ladesäulentyps hinzu
-for typ in charging_types:
-    G.add_edge(start_node, f"{typ}_0", weight=0, capacity=float('inf'))
-
-# Füge Kanten von den letzten Zeitknoten jedes Ladesäulentyps zum Endknoten hinzu
-for typ in charging_types:
-    G.add_edge(f"{typ}_{time_intervals - 1}", end_node, weight=0, capacity=float('inf'))
-
-print('Grundaufbau des Graphen steht!')
-
-# Füge Kanten für die LKWs hinzu
-truck_edges = {}
-for typ, start_time, end_time, truck_id in trucks:
-    edge = (f"{typ}_{start_time}", f"{typ}_{end_time}")
-    G.add_edge(*edge, weight=-1, capacity=1)
-    truck_edges[edge] = truck_id
-
-print('LKW-Kanten wurden hinzugefügt!')
-
-# Funktion zur Berechnung des minimalen Kostenflusses
-def calculate_min_cost_flow(graph, required_flow):
-    # Füge eine Superquelle und ein Superziel hinzu
-    super_source = 'super_source'
-    super_sink = 'super_sink'
-    graph.add_node(super_source)
-    graph.add_node(super_sink)
-
-    # Verbinde die Superquelle mit dem Startknoten
-    graph.add_edge(super_source, start_node, weight=0, capacity=required_flow)
-
-    # Verbinde das Endknoten mit dem Superziel
-    graph.add_edge(end_node, super_sink, weight=0, capacity=required_flow)
-
-    # Berechne den maximalen Fluss mit minimalen Kosten
-    flow_dict = max_flow_min_cost(graph, super_source, super_sink)
-
-    # Entferne die Superquelle und das Superziel
-    graph.remove_node(super_source)
-    graph.remove_node(super_sink)
-
-    return flow_dict
-
-flow = 1
-while True:
-    flow_dict = calculate_min_cost_flow(G, flow)
-    used_truck_edges = sum(flow_dict[f"{typ}_{start_time}"][f"{typ}_{end_time}"] for typ, start_time, end_time, _ in trucks)
-    threshold = 0.8 * len(trucks)
-    if used_truck_edges >= threshold:
-        break
-    else:
-        print('Anzahl Ladesäulen von ' + str(flow) + ' war nicht ausreichend! (Ladequote: ' + str(round(used_truck_edges/len(trucks),4)*100) + ' %)')
-        print('HPC:' + str(flow_dict[start_node]['HPC_0']))
-        print('MCS:' + str(flow_dict[start_node]['MCS_0']))
-        print('NCS:' + str(flow_dict[start_node]['NCS_0']))
-
-        flow += 1
-
-# Drucke den Fluss für jede Kante aus
-loaded_trucks = []
-for u in flow_dict:
-    for v in flow_dict[u]:
-        flow_value = flow_dict[u][v]
-        if flow_value > 0:
-            print(f"Fluss von {u} nach {v}: {flow_value}")
-            if (u, v) in truck_edges and flow_value > 0:
-                loaded_trucks.append(truck_edges[(u, v)])
-
-print('Anzahl Ladesäulen sind: ' + str(flow))
-print('Geladene LKWs:', loaded_trucks)
-
-
-
-
-
-
-
-dummy =0
-
-
-
-counts = {
-    'NCS': 0,
-    'HPC': 0,
-    'MCS': 0
-}
-lkw_gesamt = 0
-df= pd.read_excel('LKW_INPUT.xlsx', index_col=0)
-
-for i in range(0, len(df) * timedelta, timedelta):
-    x = df['Cluster0'][i]
-    data_list = ast.literal_eval(x)
-    dummy = 0
-    for j in data_list:
-        typ = j[0]
-        if typ in counts:
-            counts[typ] += 1
-        lkw_gesamt += 1
-        dummy = 0
-
-print(counts)
-print(lkw_gesamt)
-
-
-alle_lkw = pd.read_excel('LKW_INPUT.xlsx', index_col=0)
-lkw_in_tupelliste_wochenweise(alle_lkw)
-ladesäulen_anzahl_bestimmen_tageweise(['MCS'], 'Cluster0')
-"""
-import pandas as pd
-
-# Beispiel-Indexliste
-index_liste = [0, 1, 2, 3, 4]
-
-# DataFrame erstellen
-df = pd.DataFrame(0, index=index_liste, columns=['Werte'])
-
-# Ausgabe des ursprünglichen DataFrames
-print("Ursprünglicher DataFrame:")
-print(df)
-
-# Beispiel: Wert im DataFrame ändern
-# Zugriff auf den Wert an Index 2 und Spalte 'Werte'
-alter_wert = df.at[2, 'Werte']
-neuer_wert = alter_wert + 5
-
-# Den neuen Wert im DataFrame speichern
-df.at[2, 'Werte'] = neuer_wert
-
-# Ausgabe des aktualisierten DataFrames
-print("\nAktualisierter DataFrame:")
-print(df)
-
+# Ausgabe der y_i-Variablen
+print("\nAusgabe der y_i-Variablen:")
+for i, truck in enumerate(trucks):
+    arrival_time, departure_time, power, typ = truck
+    print(f"LKW {i+1} (Ankunftszeit: {arrival_time}, Abfahrtszeit: {departure_time}, benötigte Leistung: {power}):")
+    for t in range(arrival_time, departure_time ):
+        print(f"y_{i}_{t} = {y[i][t].varValue}")
