@@ -9,6 +9,7 @@ csv_dateiname = 'zst5651_2021.csv'                      # Dateiname der CSV-Date
 timedelta = 5                                           # Zeitauflösung in Minuten
 anteil_bev = 0.049
 verkehrssteigerung =  1.072
+max_soc = 0.8
 
 
 #### ganze LKW erzeugen ####
@@ -26,5 +27,5 @@ wochenweise_optimieren = True
 clusterweise_optimieren = False
 
 #### Lademanagement ####
-lademagement = 'Durchschnitt bilden'                  # wähle aus: 'kein Lademanagement', 'Durchschnitt bilden'
+lademagement = 'kein Lademanagement'                  # wähle aus: 'kein Lademanagement', 'Durchschnitt bilden', 'Optimierung'
 

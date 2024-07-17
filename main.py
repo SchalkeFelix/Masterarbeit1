@@ -223,7 +223,12 @@ if __name__ == '__main__':
     max_durchschnitts_leistung_ncs = 0
     indices = list(range(0, 2001, timedelta))
     df_ladekurve = ladekurve()
+    tupelliste_optimierung = {}
+    for z in range(0, alle_lkw.shape[1]):
+        tupelliste_optimierung['Cluster' + str(z)] = []
+
     result_df_lastkurve = pd.DataFrame(0, columns=['Last_Cluster0', 'Last_Cluster1', 'Last_Cluster2', 'Last_Cluster3', 'Last_Cluster4', 'Last_Cluster5', 'Last_Cluster6'], index = indices)
+
     for element in alle_geladenen_lkw:
         anzahl_spalten = alle_lkw.shape[1]
         for l in range(0, anzahl_spalten):
@@ -272,7 +277,7 @@ if __name__ == '__main__':
                                 kapazität = j[2]
                                 timestep = i
                                 zeit = 0
-                                benötigte_energie = (0.8 - soc) * kapazität
+                                benötigte_energie = (max_soc - soc) * kapazität
                                 ladezeit = j[3]
                                 durchschnitts_leistung = benötigte_energie * (60/ladezeit)    # timedelta kürzt sich raus
 
@@ -295,9 +300,28 @@ if __name__ == '__main__':
                                     timestep += timedelta
                                     zeit += timedelta
                                     dummy = 0
+                            if lademagement == 'Optimierung':
+                                ankunftszeit = int(i/timedelta)
+                                abfahrtszeit = int((i + j[3])/timedelta)
+                                benötigte_energie = j[2]*(max_soc-j[1])
+                                typ = j[0]
+                                tupel = (ankunftszeit, abfahrtszeit, benötigte_energie, typ)
+                                tupelliste_optimierung['Cluster' + str(l)].append(tupel)
+                                dummy = 0
+
 
 
         counter += 1
         print('Geschafft wurden: ' + str(round(counter/len(alle_geladenen_lkw)*100, 2)) + ' %')
+    if lademagement == 'Optimierung':
+        for z in range (0, alle_lkw.shape[1]):
+            values = lastgang_optimieren(tupelliste_optimierung['Cluster' + str(z)])
+            print ('Cluster ' + str(z) + ' wurde optimiert!')
+            for i in range (0,int(1440/timedelta)):
+                alter_wert = result_df_lastkurve.at[int(i*timedelta), 'Last_Cluster' + str(z)]
+                neuer_wert = alter_wert + values[i]
+                result_df_lastkurve.at[int(i*timedelta), 'Last_Cluster' + str(z)] = neuer_wert
+            print('Lastgang für Cluster ' + str(z) + ' wurde aktualisiert!')
+
     lastgang_plotten(result_df_lastkurve, anzahl_cluster_tage)
     dummy = 0

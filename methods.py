@@ -17,6 +17,7 @@ import pickle
 import networkx as nx
 from networkx.algorithms.flow import min_cost_flow
 from networkx.algorithms.flow import max_flow_min_cost
+from pulp import LpMinimize, LpProblem, LpVariable, lpSum
 
 
 
@@ -1093,4 +1094,59 @@ def lastgang_plotten (beispielwochen, anzahl_cluster):
         plt.plot(beispielwochen.index, beispielwochen['Last_Cluster' + str(i)], label='Umsatz', color=colors[i], linestyle='solid')
 
     plt.show()
+
+def lastgang_optimieren(tupelliste):
+
+    trucks = tupelliste
+
+    leist = {'HPC': 1000, 'NCS': 1000, 'MCS': 1000}
+
+    # Gesamtdauer basierend auf den Ankunfts- und Abfahrtszeiten aller LKWs
+    arrival_times = [truck[0] for truck in trucks]
+    departure_times = [truck[1] for truck in trucks]
+    T_max = max(departure_times) - 1  # Das maximale Abfahrtszeitpunkt
+
+    # Erstellen des LP-Problems
+    prob = LpProblem("Truck_Minimization", LpMinimize)
+
+    # Erstellen der Variablen x_t und x_max
+    x = LpVariable.dicts("x", range(1, T_max + 1), lowBound=0, cat='Continuous')
+    x_max = LpVariable("x_max", lowBound=0, cat='Continuous')
+
+    # Erstellen der Variablen y_i für jeden LKW
+    y = {}
+    for i, truck in enumerate(trucks):
+        arrival_time, departure_time, power, typ = truck
+        y[i] = LpVariable.dicts(f"y_{i}", range(arrival_time, departure_time), lowBound=0, cat='Continuous')
+
+    # Zielfunktion: Minimierung von x_max
+    prob += x_max, "x_max_minimization"
+
+    # Nebenbedingungen
+    for i, truck in enumerate(trucks):
+        arrival_time, departure_time, power, typ = truck
+        prob += lpSum((y[i][t] * (timedelta / 60)) for t in
+                      range(arrival_time, departure_time)) == power, f"Power_requirement_truck_{i}"
+        max_leistung = leist[typ]
+        for t in range(arrival_time, departure_time):
+            prob += y[i][t] <= max_leistung
+
+    # Nebenbedingungen zur Zuordnung der y_i zu x_t
+    for t in range(1, T_max + 1):
+        related_y = []
+        for i, truck in enumerate(trucks):
+            arrival_time, departure_time, power, typ = truck
+            if arrival_time <= t <= departure_time - 1:
+                related_y.append(y[i][t])
+        prob += x[t] == lpSum(related_y), f"Time_step_assignment_{t}"
+
+    # Nebenbedingungen für x_t <= x_max
+    for t in range(1, T_max + 1):
+        prob += x[t] <= x_max, f"Time_step_limit_{t}"
+
+    # Solver aufrufen und Lösung finden
+    prob.solve()
+
+    x_values = [x[t].value() for t in range(1, T_max + 1)]
+    return x_values
 
