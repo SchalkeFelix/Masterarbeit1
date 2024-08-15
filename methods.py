@@ -461,7 +461,7 @@ def generate_entry(df_name, ladekurve, vergebene_ids):
         soc = entry2
         ladezeit = 0
         dummy = 0
-        while soc <= 0.8 :
+        while soc <= max_soc:
             relative_geladene_energie = (df_ladekurve[spaltenname][round(soc*100, 0)] * value * (timedelta/60)) / entry3
             soc += relative_geladene_energie
             ladezeit += timedelta
@@ -1099,7 +1099,7 @@ def lastgang_optimieren(tupelliste):
 
     trucks = tupelliste
 
-    leist = {'HPC': 1000, 'NCS': 1000, 'MCS': 1000}
+    leist = {'HPC': 280, 'NCS': 120, 'MCS': 800}
 
     # Gesamtdauer basierend auf den Ankunfts- und Abfahrtszeiten aller LKWs
     arrival_times = [truck[0] for truck in trucks]
@@ -1150,3 +1150,21 @@ def lastgang_optimieren(tupelliste):
     x_values = [x[t].value() for t in range(1, T_max + 1)]
     return x_values
 
+def minimale_ladeleistung(ladekurve, min_soc, kapazität, gesetzliche_pausenzeit):
+    ladeleistung = 1
+    while True:
+        ladezeit = 0
+        soc = min_soc
+
+        while soc <= max_soc:
+            relative_geladene_energie = (ladekurve[kapazität][round(soc*100, 0)] * ladeleistung * (timedelta/60)) / kapazität
+            soc += relative_geladene_energie
+            ladezeit += timedelta
+        dummy = 0
+        if ladezeit <= gesetzliche_pausenzeit:
+            break
+        else:
+            print( 'Ladeleistung ' + str(ladeleistung) + ' kW war nicht ausreichend. Die Ladezeit betrug ' + str(ladezeit) + ' min !')
+            ladeleistung += 1
+
+    print('Die minimale Ladeleistung beträgt: ' + str(ladeleistung) + ' kW !')

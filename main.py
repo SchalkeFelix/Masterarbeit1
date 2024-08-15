@@ -245,7 +245,7 @@ if __name__ == '__main__':
                             timestep = i
                             ladeleistung = ladeleistung_liste[j[0]]
 
-                            while soc <= 0.8:
+                            while soc <= max_soc:
                                 relative_geladene_energie = (df_ladekurve[kapazität][round(soc * 100, 0)] * ladeleistung * (
                                             timedelta / 60)) / kapazität
                                 soc += relative_geladene_energie
@@ -261,7 +261,7 @@ if __name__ == '__main__':
                                 timestep = i
                                 ladeleistung = ladeleistung_liste[j[0]]
 
-                                while soc <= 0.8:
+                                while soc <= max_soc:
                                     relative_geladene_energie = (df_ladekurve[kapazität][
                                                                      round(soc * 100, 0)] * ladeleistung * (
                                                                          timedelta / 60)) / kapazität

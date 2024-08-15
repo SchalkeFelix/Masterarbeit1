@@ -575,16 +575,10 @@ for lkw in data:
 print(zuordnung)
 """
 
-
-from pulp import LpMinimize, LpProblem, LpVariable, lpSum
-
-# Beispiel LKW-Liste
-trucks = [
-    (1, 4, 10, 'HPC'),  # (Ankunftszeit, Abfahrtszeit, benötigte Leistung)
-    (2, 6, 10, 'NCS'),
-]
-dummy = lastgang_optimieren(trucks)
+ladekurve = ladekurve()
 
 
 
-fasd = 0
+
+minimale_ladeleistung(ladekurve, 0.1, 756, 45)
+

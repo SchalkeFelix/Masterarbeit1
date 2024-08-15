@@ -27,5 +27,5 @@ wochenweise_optimieren = True
 clusterweise_optimieren = False
 
 #### Lademanagement ####
-lademagement = 'kein Lademanagement'                  # wähle aus: 'kein Lademanagement', 'Durchschnitt bilden', 'Optimierung'
+lademagement = 'Optimierung'                 # wähle aus: 'kein Lademanagement', 'Durchschnitt bilden', 'Optimierung'
 
