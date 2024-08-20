@@ -18,7 +18,9 @@ batterie_kapazitäten = [252, 504, 756]                  # Batteriekapazitäten
 wahrscheinlichkeiten_batterien = [0.4, 0.2, 0.4]        # Verteilung Batteriekap., Reihenfolge gleich wie oben
 untere_grenze_soc = 0.05                                # Anfangs-COP, untere Grenze
 obere_grenze_soc = 0.3                                  # Anfangs-COP, obere Grenze
-ladeleistung_liste = {'NCS': 150, 'HPC': 350, 'MCS': 1000}                   # Ladeleistung der Ladesäulen; in Reihenfolge NCS, HPC, MCS
+ladeleistung_liste = {'NCS': 150, 'HPC': 350, 'MCS': 1000}  # Ladeleistung der Ladesäulen; in Reihenfolge NCS, HPC, MCS
+anteil_nicht_depot_overday = 0.5
+anteil_nicht_depot_overnight = 0.2
 
 #### Optimierung Anzahl Ladesäulen ####
 investment = {'HPC': 150000, 'MCS': 350000, 'NCS': 50000}

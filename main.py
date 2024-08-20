@@ -112,8 +112,8 @@ if __name__ == '__main__':
         if tage_clustern:
 
             # LKW-Daten mit Wahrscheinlichkeiten multiplizieren
-            lkw_overday = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_overday)
-            lkw_overnight = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_overnight)
+            lkw_overday = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_overday, anteil_nicht_depot_overday)
+            lkw_overnight = multiply_probability_with_trafficdays(beispieltage, ladewahrscheinlichkeiten_overnight, anteil_nicht_depot_overnight)
 
             # auf ganze LKW runden
             lkw_overday = rounded_dataframe_to_integer_trucks(lkw_overday)

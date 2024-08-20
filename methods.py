@@ -399,7 +399,7 @@ def read_excel_to_df (datei_name, mappe_name, spalten_name):
     df = pd.read_excel(datei_name, sheet_name=mappe_name, usecols=spalten_name)
     return df
 
-def multiply_probability_with_trafficdays (beispieltage, ladewahrscheinlichkeiten):
+def multiply_probability_with_trafficdays (beispieltage, ladewahrscheinlichkeiten, anteil_nicht_depot):
     # Gemeinsame Indizes bestimmen
     gemeinsame_indices = ladewahrscheinlichkeiten.index.intersection(beispieltage.index)
 
@@ -416,7 +416,7 @@ def multiply_probability_with_trafficdays (beispieltage, ladewahrscheinlichkeite
         df2_gemeinsam.columns = [column]
 
         # Multiplikation der Werte
-        x = df1_gemeinsam.mul(df2_gemeinsam, axis=1)
+        x = df1_gemeinsam.mul(df2_gemeinsam, axis=1) * anteil_nicht_depot
         result[column] = x
 
     return result
