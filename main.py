@@ -126,8 +126,8 @@ if __name__ == '__main__':
 
             # Output hier ist ein Dataframe mit Arrays für jeden LKW
             # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
-            ladekurve = ladekurve()
-            alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
+            df_ladekurve = ladekurve()
+            alle_lkw = generate_lkw_in_array(dataframes, df_ladekurve)
             index_list = lkw_overday.index.tolist()
             alle_lkw.index = index_list
             alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
@@ -157,8 +157,8 @@ if __name__ == '__main__':
 
             # Output hier ist ein Dataframe mit Arrays für jeden LKW
             # Form jedes Arrays ist [Typ, SOC_bei_Ankunft, Batteriekapazität, max. Ladezeit, Optimierungspotential?]
-            ladekurve = ladekurve()
-            alle_lkw = generate_lkw_in_array(dataframes, ladekurve)
+            df_ladekurve = ladekurve()
+            alle_lkw = generate_lkw_in_array(dataframes, df_ladekurve)
             index_list = lkw_overnight_woche.index.tolist()
             alle_lkw.index = index_list
             alle_lkw.to_excel('LKW_INPUT.xlsx', index=True)
@@ -239,7 +239,7 @@ if __name__ == '__main__':
                 dummy = 0
                 for j in data_list:
                     if element == j[5]:
-                        if j[4] == 'kein Optimierungspotential' :
+                        if j[4] == 'kein Optimierungspotential':
                             soc = j[1]
                             kapazität = j[2]
                             timestep = i
@@ -256,6 +256,9 @@ if __name__ == '__main__':
                                 timestep += timedelta
                         if j[4] == 'Optimierungspotential':
                             if lademagement == 'kein Lademanagement':
+                                max_durchschnitts_leistung_hpc = ladeleistung_liste['HPC']
+                                max_durchschnitts_leistung_mcs = ladeleistung_liste['MCS']
+                                max_durchschnitts_leistung_ncs = ladeleistung_liste['NCS']
                                 soc = j[1]
                                 kapazität = j[2]
                                 timestep = i
@@ -324,4 +327,9 @@ if __name__ == '__main__':
             print('Lastgang für Cluster ' + str(z) + ' wurde aktualisiert!')
 
     lastgang_plotten(result_df_lastkurve, anzahl_cluster_tage)
+    if lademagement != 'Optimierung':
+        print('HPC_max = ' + str(max_durchschnitts_leistung_hpc))
+        print('NCS_max = ' + str(max_durchschnitts_leistung_ncs))
+        print('MCS_max = ' + str(max_durchschnitts_leistung_mcs))
+    print('Der Maximalwert ist ' + str(result_df_lastkurve.max().max()) + ' kW !')
     dummy = 0

@@ -441,7 +441,7 @@ def generate_entry(df_name, ladekurve, vergebene_ids):
     if "overday" in df_name:
         pausenzeit = 45
     elif "overnight" in df_name:
-        pausenzeit = 480
+        pausenzeit = 540
 
     # Eintrag 2: Eine zufällige Zahl zwischen 0,05 und 0,3
     entry2 = round(random.uniform(untere_grenze_soc, obere_grenze_soc), 2)
@@ -656,7 +656,7 @@ def belegungspläne_array(alle_lkw):
             # Anzahl der LKWs und Grenze für 80%
             total_trucks = len(data)
             assigned_trucks = 0
-            limit = int(total_trucks * 0.8)
+            limit = int(total_trucks * ladeqoute)
 
             # Durch die Ereignisse gehen
             for event in events:
@@ -913,7 +913,7 @@ def ladesäulen_anzahl_bestimmen_wochenweise(ladesäulentyp):
         flow_dict = calculate_min_cost_flow(G, flow)
         used_truck_edges = sum(
             flow_dict[f"{typ}_{start_time}"][f"{typ}_{end_time}"] for typ, start_time, end_time, _ in trucks)
-        threshold = 0.8 * counts[ladesäulentyp[0]]
+        threshold = ladeqoute * counts[ladesäulentyp[0]]
         if used_truck_edges >= threshold:
             break
         else:
@@ -1057,7 +1057,7 @@ def ladesäulen_anzahl_bestimmen_tageweise(ladesäulentyp, clustername):
         flow_dict = calculate_min_cost_flow(G, flow)
         used_truck_edges = sum(
             flow_dict[f"{typ}_{start_time}"][f"{typ}_{end_time}"] for typ, start_time, end_time, _ in trucks)
-        threshold = 0.8 * counts[ladesäulentyp[0]]
+        threshold = ladeqoute * counts[ladesäulentyp[0]]
         if used_truck_edges >= threshold:
             break
         else:
@@ -1096,10 +1096,10 @@ def lastgang_plotten (beispielwochen, anzahl_cluster):
     plt.show()
 
 def lastgang_optimieren(tupelliste):
-
     trucks = tupelliste
 
-    leist = {'HPC': 280, 'NCS': 120, 'MCS': 800}
+    # Leistungsgrenzen für jeden Typ (angepasst an die Typen in der Ladeleistungsliste)
+    leist = {'HPC': 0.8 * ladeleistung_liste['HPC'], 'NCS': 0.8 * ladeleistung_liste['NCS'], 'MCS': 0.8 * ladeleistung_liste['MCS']}
 
     # Gesamtdauer basierend auf den Ankunfts- und Abfahrtszeiten aller LKWs
     arrival_times = [truck[0] for truck in trucks]
@@ -1147,8 +1147,24 @@ def lastgang_optimieren(tupelliste):
     # Solver aufrufen und Lösung finden
     prob.solve()
 
+    # Erstellen eines Dictionaries für die maximalen y-Werte für jeden Typ
+    max_y_per_type = {'HPC': 0, 'NCS': 0, 'MCS': 0}
+
+    # Iterieren über die LKWs und die jeweiligen y-Werte
+    for i, truck in enumerate(trucks):
+        arrival_time, departure_time, power, typ = truck
+        max_y_for_truck = max(y[i][t].value() for t in range(arrival_time, departure_time))
+        if max_y_for_truck > max_y_per_type[typ]:  # Vergleichen mit dem aktuellen Maximum für den Typ
+            max_y_per_type[typ] = max_y_for_truck
+
+    # Die maximalen y-Werte für jeden Typ printen
+    for typ, max_y in max_y_per_type.items():
+        print(f"Maximales y_i für Typ {typ}: {max_y}")
+
+    # Rückgabe der x-Werte
     x_values = [x[t].value() for t in range(1, T_max + 1)]
     return x_values
+
 
 def minimale_ladeleistung(ladekurve, min_soc, kapazität, gesetzliche_pausenzeit):
     ladeleistung = 1
@@ -1168,3 +1184,84 @@ def minimale_ladeleistung(ladekurve, min_soc, kapazität, gesetzliche_pausenzeit
             ladeleistung += 1
 
     print('Die minimale Ladeleistung beträgt: ' + str(ladeleistung) + ' kW !')
+
+def ladeleistung_array(hpc_count, ncs_count, mcs_count, errechnete_ladeleistung):
+    # Definiere die Leistungen der jeweiligen Ladesäulen
+    hpc_leistung = errechnete_ladeleistung['HPC']
+    ncs_leistung = errechnete_ladeleistung['NCS']
+    mcs_leistung = errechnete_ladeleistung['MCS']
+
+    # Erstelle Listen für jede Ladesäulen-Art
+    hpc_list = [hpc_leistung] * hpc_count
+    ncs_list = [ncs_leistung] * ncs_count
+    mcs_list = [mcs_leistung] * mcs_count
+
+    # Verbinde die Listen und gebe sie zurück
+    return ncs_list + hpc_list + mcs_list
+
+def assign_cable_length(index):
+    """Assign cable length based on position in the sorted list."""
+    if index < 4:
+        return 4
+    elif index < 8:
+        return 8
+    elif index < 12:
+        return 12
+    elif index < 16:
+        return 16
+    elif index < 20:
+        return 20
+    elif index < 24:
+        return 24
+    elif index < 28:
+        return 28
+    elif index < 32:
+        return 32
+    elif index < 36:
+        return 36
+    elif index < 40:
+        return 40
+    elif index < 44:
+        return 44
+    elif index < 48:
+        return 48
+    elif index < 52:
+        return 52
+    else:
+        return 56  # Extend as needed
+
+
+def assign_cable_diameter(performance, cable_length, niederspannung):
+    if niederspannung == True:
+        diameter = (2 * cable_length * (performance/0.400))/(56*0.05*400)
+    return diameter  # Example formula
+
+
+def process_transformer(transformer_data, l, niederspannung, kabel_mittelspannung):
+    ladesäulen = transformer_data
+    # Sort Ladesäulen based on performance
+    sorted_ladesäulen = sorted(ladesäulen, key=lambda x: l[x - 1], reverse=True)
+
+    result = {}
+    for index, ladesäule in enumerate(sorted_ladesäulen):
+        performance = l[ladesäule - 1]
+        cable_length = assign_cable_length(index)
+        cable_diameter = assign_cable_diameter(performance, cable_length, niederspannung)
+        selected_cable = select_cable(cable_diameter, kabel_mittelspannung)
+        result[ladesäule] = {
+            'Performance': performance,
+            'Cable Length': cable_length,
+            'Cable Diameter': cable_diameter,
+            'Selected Cable': selected_cable
+        }
+
+    return result
+
+def select_cable(diameter, kabel_mittelspannung):
+    """Select the appropriate cable based on diameter."""
+    suitable_cables = [kabel for kabel in kabel_mittelspannung if kabel[0] >= diameter]
+    if not suitable_cables:
+        return None  # No suitable cable found
+    # Choose the cable with the smallest price
+    return min(suitable_cables, key=lambda x: x[1])
+

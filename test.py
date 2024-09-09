@@ -575,10 +575,96 @@ for lkw in data:
 print(zuordnung)
 """
 
-ladekurve = ladekurve()
+import gurobipy as gp
+from gurobipy import GRB
+
+# Beispielwerte für die Parameter
+r = 150  # Anzahl der Transformator-Klassen
+m = 50  # Anzahl der Ladesäulen
+errechnete_Ladeleistung = {'NCS': 61.32, 'HPC': 252, 'MCS': 756}   # abhängig, ob Lademanagement oder nicht
+# Leistungskapazitäten der Transformatoren (für jede Klasse)
+P = [50, 100, 160, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150] * 10
+
+# Leistungsanforderungen der Ladesäulen (ladeleistung_array)
+# Ladeleistung zufällig generiert als Platzhalter
+import numpy as np
+l = ladeleistung_array(8, 39, 3, errechnete_Ladeleistung)  # HPC, NCS, MCS
+
+# Festkosten für die Auswahl eines Transformators jeder Klasse
+f = [18284.15, 23850.40, 28772.70, 40394.15, 46956.48, 55055.90, 63520.40, 74290.05, 92056.90, 107417.90, 131328.15,
+     161348.90, 193641.90, 233614.40, 285106.65] * 10
+
+# Initialisiere das Modell
+model = gp.Model("Minimize_Total_Costs_with_Transformers")
+
+# Entscheidungsvariablen x_ij (Binary) und y_i (Binary)
+x = model.addVars(r, m, vtype=GRB.BINARY, name="x")
+y = model.addVars(r, vtype=GRB.BINARY, name="y")
+
+# Zielfunktion: Minimiere die Kosten der ausgewählten Transformatoren
+model.setObjective(gp.quicksum(f[i] * y[i] for i in range(r)), GRB.MINIMIZE)
+
+# 1. Jede Ladesäule wird genau einem Transformator zugewiesen
+for j in range(m):
+    model.addConstr(gp.quicksum(x[i, j] for i in range(r)) == 1, name=f"ladesaeule_{j}")
+
+# 2. Leistungskapazität der Transformatoren (nur wenn die Klasse ausgewählt wurde)
+for i in range(r):
+    model.addConstr(gp.quicksum(x[i, j] * l[j] for j in range(m)) <= P[i] * y[i], name=f"kapazitaet_{i}")
+
+# Optimierung
+model.optimize()
+
+# Status der Lösung
+print("Status:", model.Status)
+
+# Zugewiesene Transformatoren
+print("\nZugewiesene Transformatoren:")
+for i in range(r):
+    if y[i].X > 0.5:  # Wegen Rundungsfehlern bei binären Variablen > 0.5
+        print(f"{int(y[i].X)} Transformator(en) der Klasse {i+1} (Kapazität {P[i]} kW) ausgewählt.")
+
+# Zuweisungen der Ladesäulen zu Transformatoren
+print("\nZuweisungen der Ladesäulen zu Transformatoren:")
+transformator_ladesaeulen = {}
+
+for i in range(r):
+    zugeordnete_ladesaeulen = []
+    for j in range(m):
+        if x[i, j].X > 0.5:
+            zugeordnete_ladesaeulen.append(j + 1)  # Ladesäule-Index um 1 erhöht, um menschlich verständlich zu sein
+    if zugeordnete_ladesaeulen:
+        transformator_ladesaeulen[i + 1] = zugeordnete_ladesaeulen  # Transformator-Index um 1 erhöht
+
+# Ausgabe der Liste: Transformator und zugeordnete Ladesäulen
+for transformator, ladesaeulen in transformator_ladesaeulen.items():
+    # Erstelle eine neue Liste, die die Ladesäule und deren Leistung als String enthält
+    ladesaeulen_mit_leistung = [f"{ladesaeule} ({l[ladesaeule - 1]} kW)" for ladesaeule in ladesaeulen]
+
+    # Gebe die Liste aus
+    print(f"Transformator {transformator}: Ladesäulen {ladesaeulen_mit_leistung}")
+print(transformator_ladesaeulen)
+
+kabel_mittelspannung = [(5, 20),
+                        (500, 10)]  # (Querschnitt, Preis)
+kabel_niederspannung = [(200, 30),
+                        (600, 60)]
 
 
 
+# Beispiel-Daten für die Ladesäulen
+data = transformator_ladesaeulen
 
-minimale_ladeleistung(ladekurve, 0.1, 756, 45)
 
+
+# Process each transformer
+for transformer, ladesäulen in data.items():
+    results = process_transformer(ladesäulen, l, True, kabel_mittelspannung)
+    print(f"Transformer {transformer}:")
+    for ladesäule, details in results.items():
+        cable_info = details['Selected Cable']
+        if cable_info:
+            cable_diameter, cable_price = cable_info
+            print(f"  Ladesäule {ladesäule}: Performance={details['Performance']}, Cable Length={details['Cable Length']}m, Cable Diameter={details['Cable Diameter']:.2f}mm, Selected Cable Diameter={cable_diameter}mm, Price={cable_price}€")
+        else:
+            print(f"  Ladesäule {ladesäule}: Performance={details['Performance']}, Cable Length={details['Cable Length']}m, Cable Diameter={details['Cable Diameter']:.2f}mm, No suitable cable found")
