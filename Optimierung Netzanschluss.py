@@ -19,6 +19,7 @@ kipppunkt_hs_trafo = 20000
 f = [18284.15, 23850.40, 28772.70, 40394.15, 46956.48, 55055.90, 63520.40, 74290.05, 92056.90, 107417.90, 131328.15,
      161348.90, 193641.90, 233614.40, 285106.65] * 10 # Festkosten für die Auswahl eines Transformators jeder Klasse
 
+Anzahl_adern = 2
 kabel_mittelspannung = [(35, 9.27),
                         (50, 9.55),
                         (70, 11.82),
@@ -155,6 +156,6 @@ else:
 
 ############################################# Gesamt Kosten ###########################################################
 
-gesamt_kosten = kosten_hs_trafo + 2* (kabel_kosten_mittelspannung + kabel_kosten_niederspannung) + kosten_transformator
+gesamt_kosten = kosten_hs_trafo + Anzahl_adern * (kabel_kosten_mittelspannung + kabel_kosten_niederspannung) + kosten_transformator
 
 print('Die Gesamtkosten betragen: ' + str(round(gesamt_kosten, 2)) + ' € !')
