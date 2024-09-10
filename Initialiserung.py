@@ -14,7 +14,7 @@ ladeqoute = 0.8
 
 
 #### ganze LKW erzeugen ####
-neue_input_daten_erzeugen = False                       # neue Inputdaten bestimmen
+neue_input_daten_erzeugen = True                       # neue Inputdaten bestimmen
 batterie_kapazitäten = [252, 504, 756]                  # Batteriekapazitäten
 wahrscheinlichkeiten_batterien = [0.6025, 0.3065, 0.0910]        # Verteilung Batteriekap., Reihenfolge gleich wie oben
 untere_grenze_soc = 0.05                                # Anfangs-COP, untere Grenze

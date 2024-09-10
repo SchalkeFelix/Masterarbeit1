@@ -436,7 +436,9 @@ def rounded_dataframe_to_integer_trucks(df):
     result_df = result_df.astype(int)
     return result_df
 
-def generate_entry(df_name, ladekurve, vergebene_ids):
+def generate_entry(df_name, ladekurve, vergebene_ids, row_idx):
+
+    ankunftszeit = row_idx
     # Eintrag 1: Abhängig vom Namen des DataFrames
     if "overday" in df_name:
         pausenzeit = 45
@@ -444,7 +446,7 @@ def generate_entry(df_name, ladekurve, vergebene_ids):
         pausenzeit = 540
 
     # Eintrag 2: Eine zufällige Zahl zwischen 0,05 und 0,3
-    entry2 = round(random.uniform(untere_grenze_soc, obere_grenze_soc), 2)
+    entry2 = berechne_akkustand(ankunftszeit)
 
     # Eintrag 3: Eine Zahl entweder 252, 504 oder 756 mit Wahrscheinlichkeiten 0,4, 0,2, 0,4
     entry3 = random.choices(batterie_kapazitäten, wahrscheinlichkeiten_batterien)[0]
@@ -507,8 +509,9 @@ def generate_lkw_in_array(dataframes, ladekurve):
             if row_idx < df.shape[0]*timedelta:
                 for col in df.columns:
                     value = df.at[row_idx, col]
+
+                    arrays = [generate_entry(df.name, ladekurve, vergebene_id, row_idx) for _ in range(value)]  # Hier wird df.name verwendet
                     dummy = 0
-                    arrays = [generate_entry(df.name, ladekurve, vergebene_id) for _ in range(value)]  # Hier wird df.name verwendet
                     row_data[col].extend(arrays)
         for col in row_data:
             result_dict[col].append(row_data[col])
@@ -516,6 +519,7 @@ def generate_lkw_in_array(dataframes, ladekurve):
 
     # Erstellen eines DataFrames aus dem Dictionary der Arrays
     result_df = pd.DataFrame(result_dict)
+    dummy = 0
     return result_df
 
 def ladekurve ():
@@ -1234,7 +1238,9 @@ def assign_cable_length(index):
 def assign_cable_diameter(performance, cable_length, niederspannung):
     if niederspannung == True:
         diameter = (2 * cable_length * (performance/0.400))/(56*0.05*400)
-    return diameter  # Example formula
+    else:
+        diameter = (2 * cable_length * (performance / 15) * 0.85) / (56 * 0.05 * 15000)
+    return diameter
 
 
 def process_transformer(transformer_data, l, niederspannung, kabel_mittelspannung):
@@ -1265,3 +1271,24 @@ def select_cable(diameter, kabel_mittelspannung):
     # Choose the cable with the smallest price
     return min(suitable_cables, key=lambda x: x[1])
 
+def berechne_akkustand(row_idx):
+    if 0 <= row_idx <= 359:
+        # Akkustand nachts: 20% +/- 10%
+        grund_akkustand = 0.20
+        schwankung = random.uniform(-0.10, 0.10)
+        akkustand = grund_akkustand + schwankung
+    elif 360 <= row_idx <= 1440:
+        # Linearer Verlauf zwischen 60% (6:00) und 20% (24:00)
+        start_akkustand = 0.60
+        end_akkustand = 0.20
+        tages_minuten = 1440 - 360  # Anzahl der Minuten zwischen 6:00 und 24:00
+        akkustand = start_akkustand - ((start_akkustand - end_akkustand) * (row_idx - 360) / tages_minuten)
+        schwankung = random.uniform(-0.10, 0.10)
+        akkustand += schwankung
+    else:
+        return "Ungültiger row_idx, muss zwischen 0 und 1440 liegen."
+
+    # Akkustand begrenzen, damit er nicht unter 0% oder über 100% liegt
+    akkustand = max(0, min(1, akkustand))
+
+    return round(akkustand, 2)
