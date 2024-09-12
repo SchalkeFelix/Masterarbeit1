@@ -19,7 +19,7 @@ kipppunkt_hs_trafo = 20000
 f = [18284.15, 23850.40, 28772.70, 40394.15, 46956.48, 55055.90, 63520.40, 74290.05, 92056.90, 107417.90, 131328.15,
      161348.90, 193641.90, 233614.40, 285106.65] * 10 # Festkosten für die Auswahl eines Transformators jeder Klasse
 
-Anzahl_adern = 2
+
 kabel_mittelspannung = [(35, 9.27),
                         (50, 9.55),
                         (70, 11.82),
@@ -34,21 +34,22 @@ kabel_mittelspannung = [(35, 9.27),
                         (630, 86.89),
                         (800, 103.38)
                         ]  # (Querschnitt, Preis/m)
-kabel_niederspannung = [(4, 0.59),
-                        (6, 0.7),
-                        (10, 1.01),
-                        (16, 1.57),
-                        (25, 2.47),
-                        (35, 3.34),
-                        (50, 4.48),
-                        (70, 6.33),
-                        (95, 8.61),
-                        (120, 10.53),
-                        (150, 13.22),
-                        (185, 16.19),
-                        (240, 20.81),
-                        (300, 26.06),
-                        (400, 35.04)
+kabel_niederspannung = [(1.5, 0.60),
+                        (2.5, 0.88),
+                        (4, 1.42),
+                        (6, 1.99),
+                        (10, 3.13),
+                        (16, 4.69),
+                        (25, 7.51),
+                        (35, 9.84),
+                        (50, 14.38),
+                        (70, 19.44),
+                        (95, 25.96),
+                        (120, 32.02),
+                        (150, 39.83),
+                        (185, 49.41),
+                        (240, 66.01),
+                        (400, 114.62)
                         ]  # (Querschnitt, Preis/m)
 
 ################################################# Optimeriung Anzahl der Trafos ########################################
@@ -133,7 +134,7 @@ print(Transformator_Leistung_gesamt)
 
 ################################################ Optimierung Mittelspannungskabel ######################################
 kabel_kosten_mittelspannung = 0
-kabellaenge = 3000
+kabellaenge = 3770
 for transformer in Transformator_Leistung_gesamt:
     leistung = Transformator_Leistung_gesamt[transformer]
     diameter_ms = assign_cable_diameter(leistung, kabellaenge, False)
@@ -156,6 +157,6 @@ else:
 
 ############################################# Gesamt Kosten ###########################################################
 
-gesamt_kosten = kosten_hs_trafo + Anzahl_adern * (kabel_kosten_mittelspannung + kabel_kosten_niederspannung) + kosten_transformator
+gesamt_kosten = kosten_hs_trafo + 3 * kabel_kosten_mittelspannung + kabel_kosten_niederspannung + kosten_transformator
 
 print('Die Gesamtkosten betragen: ' + str(round(gesamt_kosten, 2)) + ' € !')

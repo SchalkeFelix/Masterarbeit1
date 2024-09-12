@@ -1237,9 +1237,9 @@ def assign_cable_length(index):
 
 def assign_cable_diameter(performance, cable_length, niederspannung):
     if niederspannung == True:
-        diameter = (2 * cable_length * (performance/0.400))/(56*0.05*400)
+        diameter = (2 * cable_length * (performance/0.600))/(56*0.05*600)
     else:
-        diameter = (2 * cable_length * (performance / 15) * 0.85) / (56 * 0.05 * 15000)
+        diameter = (2 * cable_length * (performance / 20) * 0.85) / (56 * 0.05 * 20000)
     return diameter
 
 
